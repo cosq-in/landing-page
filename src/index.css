@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+:root {
+  /* Surface Depths */
+  --color-surface: #0b0e14;
+  --color-surface-container-low: #10131a;
+  --color-surface-container-high: #1c2028;
+  --color-surface-dim: #080a0e;
+
+  /* Primary Actives */
+  --color-primary: #85adff;
+  --color-primary-dim: #0070eb;
+  --color-on-primary: #ffffff;
+
+  /* Neutrals */
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #a9abb3;
+  --color-outline-variant: rgba(169, 171, 179, 0.15);
+
+  /* Fonts */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  overflow-x: hidden; /* Parallax often causes horizontal scroll issues */
+  /* "Glowing Pathway" Radial Gradient Base */
+  background-image: radial-gradient(circle at 50% 100%, rgba(133, 173, 255, 0.05) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+/* Base Glassmorphic Container */
+.glass-panel {
+  background: rgba(28, 32, 40, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 2rem; /* lg corner radius */
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: inset 0 0 10px rgba(0, 112, 235, 0.1); /* Inner glow */
+}
+
+/* Primary Button "Plant Flag" Style */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dim));
+  border: none;
+  border-radius: 9999px;
+  color: var(--color-on-primary);
+  padding: 1rem 2rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 15px rgba(133, 173, 255, 0.3);
+  transform: translateY(-2px);
+}
