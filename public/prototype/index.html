@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kurukuru Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1F2A1D;--g1:#7DBB4A;--g2:#4E8A2B;--d1:#8A5A35;--d2:#6B4423;--river:#4FA3C7;--sky:#9FD3EA;--parch:#F5EEDC;--gold:#E8B23A;--red:#D0452F;--stone:#B8B6AC;--stone2:#8E8C82}
+*{box-sizing:border-box}
+body{margin:0;background:#E9E4D3;font-family:'DM Sans',sans-serif;color:var(--ink)}
+a{color:var(--g2)}a:hover{color:var(--d2)}
+.lbl{position:absolute;top:44px;white-space:nowrap;font:600 18px 'Pixelify Sans';color:var(--ink)}
+.scr{position:absolute;top:80px;width:390px;height:844px;overflow:hidden;background:var(--sky);box-shadow:0 0 0 3px var(--ink),0 12px 0 0 rgba(31,42,29,.18);border-radius:6px}
+.px{font-family:'Pixelify Sans',monospace}
+.blk{border:3px solid var(--ink);border-radius:6px;background:var(--parch);box-shadow:0 4px 0 var(--ink),inset 0 -4px 0 rgba(31,42,29,.14)}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;width:100%;border:3px solid var(--ink);border-radius:6px;background:var(--g1);color:var(--ink);font:700 22px 'Pixelify Sans';box-shadow:0 5px 0 var(--ink),inset 0 -5px 0 var(--g2);cursor:pointer;transition:transform .05s,box-shadow .05s;margin-bottom:5px}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 var(--g2)}
+.btn.alt{background:#fff;box-shadow:0 5px 0 var(--ink),inset 0 -5px 0 #D9D3BE;font:700 18px 'DM Sans'}
+.btn.alt:active{box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 #D9D3BE}
+.btn.stone{background:var(--stone);box-shadow:0 5px 0 var(--ink),inset 0 -5px 0 var(--stone2)}
+.btn.stone:active{box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 var(--stone2)}
+.fld{display:block;width:100%;height:48px;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;box-shadow:inset 0 4px 0 rgba(31,42,29,.1);padding:0 14px;font:500 16px 'DM Sans';color:var(--ink);outline:0}
+.fld::placeholder{color:#7A7F6E}.fld:focus{border-color:var(--g2)}
+.fl{font:700 12px 'DM Sans';letter-spacing:1px;text-transform:uppercase;margin:0 0 6px;display:block}
+.xp{display:flex;gap:3px}.xp i{flex:1;height:14px;background:#D9D3BE;border:2px solid var(--ink);border-radius:2px}.xp i.on{background:var(--g1);box-shadow:inset 0 -4px 0 var(--g2)}
+.lv{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;background:var(--gold);border:3px solid var(--ink);border-radius:6px;box-shadow:inset 0 -5px 0 #B98A1E;font:700 20px 'Pixelify Sans'}
+.tgl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tgl div{display:flex;align-items:center;justify-content:center;height:48px;border:3px solid var(--ink);border-radius:6px;background:#E6DFC9;font:700 17px 'Pixelify Sans';box-shadow:inset 0 -4px 0 #CFC7AB}
+.tgl .on{background:var(--g1);box-shadow:inset 0 -4px 0 var(--g2)}
+.map{position:absolute;inset:0}.map svg{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;padding:18px 18px 22px;border-radius:6px 6px 0 0;border-bottom:0;box-shadow:0 -4px 0 var(--ink)}
+.cloud{position:absolute;background:#fff;box-shadow:inset 0 -8px 0 #DCEBF3}
+.cloud b{position:absolute;background:#fff;bottom:0}
+.ground{position:absolute;left:0;right:0;bottom:0}
+.opt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:76px;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;font:700 14px 'DM Sans';box-shadow:inset 0 -4px 0 #E6DFC9}
+.opt.on{background:var(--g1);box-shadow:inset 0 -4px 0 var(--g2)}
+.av{display:flex;align-items:center;justify-content:center;height:112px;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;box-shadow:inset 0 -5px 0 #E6DFC9;position:relative}
+.av.on{background:var(--g1);box-shadow:0 4px 0 var(--ink),inset 0 -5px 0 var(--g2)}
+.av.on:after{content:'';position:absolute;top:-9px;right:-9px;width:22px;height:22px;background:var(--gold) ;border:3px solid var(--ink);border-radius:4px}
+
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;gap:32px;overflow:hidden}
+.lbl{display:none}
+#wrap{position:relative;flex:none}#stage{position:relative;width:390px;height:844px;transform-origin:top left}
+#stage .scr{left:0!important;top:0!important;opacity:0;visibility:hidden;pointer-events:none;transform:translateX(28px) scale(.99);transition:opacity .32s ease,transform .32s ease,visibility 0s .32s}
+#stage .scr.act{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .32s ease,transform .32s ease,visibility 0s}
+#jump{display:flex;flex-direction:column;gap:10px;width:150px}
+.jb{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:3px solid var(--ink);border-radius:6px;background:var(--parch);box-shadow:0 4px 0 var(--ink),inset 0 -4px 0 rgba(31,42,29,.14);font:700 14px 'DM Sans';color:var(--ink);cursor:pointer;transition:transform .12s,background .15s;text-align:left}
+.jb:hover{transform:translateY(-2px)}.jb:active{transform:translateY(3px)}.jb.on{background:var(--g1)}
+@media(max-width:760px){#jump{display:none}}
+.btn{cursor:pointer}.btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn:active{filter:none;transform:translateY(4px);box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 var(--g2)}
+.btn.alt:active{box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 #D9D3BE}.btn.stone:active{box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 var(--stone2)}
+.tgl div,.opt,.av,.blk[data-tap]{cursor:pointer;transition:transform .12s,background .15s,box-shadow .15s}
+.tgl div:hover,.opt:hover,.av:hover,.blk[data-tap]:hover{transform:translateY(-2px)}
+.tgl div:active,.opt:active,.av:active,.blk[data-tap]:active{transform:translateY(1px) scale(.97)}
+.fld{transition:border-color .15s,box-shadow .2s}.fld:focus{box-shadow:0 0 0 4px rgba(125,187,74,.45),inset 0 4px 0 rgba(31,42,29,.1)}.fld:disabled{opacity:.45}
+a{transition:color .15s}.xp i{transition:background .25s,box-shadow .25s}
+.shake{animation:shake .4s}@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.tin{animation:tin .35s cubic-bezier(.2,.9,.3,1)}@keyframes tin{from{opacity:0;transform:translateY(-14px)}}
+.enter .sheet{animation:slideUp .5s cubic-bezier(.2,.9,.3,1) both}@keyframes slideUp{from{transform:translateY(100%)}}
+.drop{animation:drop .5s cubic-bezier(.3,1.6,.5,1) both}@keyframes drop{from{transform:translateY(-40px);opacity:0}}
+.halo{animation:halo 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes halo{50%{transform:scale(1.18);opacity:.6}}
+.enter .rw{animation:cardIn .5s cubic-bezier(.2,.9,.3,1) both}@keyframes cardIn{from{opacity:0;transform:translateY(24px)}}
+.pop{animation:pop .6s cubic-bezier(.3,1.8,.5,1) both}@keyframes pop{from{transform:scale(0) rotate(-20deg)}}
+.lvpop{animation:lvp .5s}@keyframes lvp{40%{transform:scale(1.3)}}
+.err{display:none;margin:-8px 0 10px;font:700 12px 'DM Sans';background:#F7D77A;border:2px solid var(--ink);border-radius:4px;padding:3px 8px}
+.loc{display:flex;align-items:center;gap:12px;height:62px;cursor:pointer}.loc small{display:block;font:700 11px 'DM Sans';letter-spacing:1px}.loc b{display:block;font:700 16px 'DM Sans';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}.loc:hover b{text-decoration:underline}
+.sq{display:block;width:20px;height:20px;flex:none;border:3px solid var(--ink);border-radius:3px}
+.srow{display:flex;align-items:center;justify-content:space-between;min-height:44px}.srow b{display:block;font:700 16px 'DM Sans'}.srow small{display:block;font:500 12px 'DM Sans'}
+.sw{width:56px;height:30px;border:3px solid var(--ink);border-radius:6px;background:#CFC7AB;position:relative;cursor:pointer;transition:background .2s;box-shadow:inset 0 3px 0 rgba(31,42,29,.12);flex:none}.sw:after{content:'';position:absolute;top:1px;left:1px;width:20px;height:20px;background:#fff;border:3px solid var(--ink);border-radius:3px;transition:transform .2s}.sw.on{background:var(--g1)}.sw.on:after{transform:translateX(26px)}
+.pn{overflow:hidden;max-height:0;opacity:0;transition:max-height .35s ease,opacity .25s}.pn.open{max-height:170px;opacity:1}
+.dts{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}.dts::-webkit-scrollbar{display:none}
+.dt{flex:none;width:52px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;box-shadow:inset 0 -4px 0 #E6DFC9;cursor:pointer;transition:transform .12s,background .15s}.dt small{font:700 10px 'DM Sans'}.dt b{font-size:20px;line-height:1}.dt:hover{transform:translateY(-2px)}.dt.on,.dc.on{background:var(--g1);box-shadow:inset 0 -4px 0 var(--g2)}
+.dc{flex:1;height:44px;display:flex;align-items:center;justify-content:center;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;box-shadow:inset 0 -4px 0 #E6DFC9;font:700 16px 'Pixelify Sans';cursor:pointer;transition:transform .12s,background .15s}.dc:hover{transform:translateY(-2px)}
+.stb{width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border:3px solid var(--ink);border-radius:6px;background:#fff;box-shadow:0 3px 0 var(--ink),inset 0 -4px 0 #D9D3BE;font:700 24px 'Pixelify Sans';cursor:pointer;transition:transform .05s,box-shadow .05s}.stb:active{transform:translateY(3px);box-shadow:0 0 0 var(--ink),inset 0 -4px 0 #D9D3BE}
+.tv{width:48px;text-align:center;font-weight:700;font-size:26px}
+#p-pk{position:absolute;inset:0;visibility:hidden;opacity:0;background:rgba(31,42,29,.5);transition:opacity .25s,visibility 0s .25s}#p-pk.show{visibility:visible;opacity:1;transition:opacity .25s}
+#p-pks{position:absolute;left:0;right:0;bottom:0;height:580px;border-radius:6px 6px 0 0;border-bottom:0;padding:18px;display:flex;flex-direction:column;gap:12px;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1)}#p-pk.show #p-pks{transform:none}
+#p-list{overflow:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:10px}.pr{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 12px;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;font:700 15px 'DM Sans';cursor:pointer;transition:transform .12s,background .15s}.pr:hover{background:var(--g1);transform:translateY(-2px)}
+.rad{fill:none;stroke:#3A7BE0;stroke-width:3;animation:rad 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}@keyframes rad{from{transform:scale(.25);opacity:1}to{transform:scale(2.4);opacity:0}}
+.pov{position:absolute;inset:0;z-index:20;visibility:hidden;opacity:0;background:rgba(31,42,29,.45);transition:opacity .25s,visibility 0s .25s}.pov.show{visibility:visible;opacity:1;transition:opacity .25s}
+.pps{position:absolute;left:0;right:0;bottom:0;border-radius:6px 6px 0 0;border-bottom:0;padding:18px;display:flex;flex-direction:column;gap:14px;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1)}.pov.show .pps{transform:none}
+.ptoast{position:absolute;right:14px;z-index:6;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--g1);box-shadow:0 4px 0 var(--ink),inset 0 -4px 0 var(--g2);pointer-events:none}
+.srow b{font-size:15px!important}.srow small{font-size:12px!important}
+.dts{display:flex!important;gap:4px!important;overflow:hidden!important;padding:0!important}.dt{flex:1!important;width:auto!important;min-width:0;height:52px!important}.dt small{font:700 10px 'DM Sans'!important}.dt b{font:700 16px 'DM Sans'!important;line-height:1.1}
+.trow{display:flex;align-items:center;justify-content:space-between;margin-top:10px}.trow small{font:700 11px 'DM Sans';letter-spacing:1px}.tstep{display:flex;align-items:center;gap:8px}
+.tdisp{min-width:104px;height:44px;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;box-shadow:inset 0 3px 0 rgba(31,42,29,.1);display:flex;align-items:center;justify-content:center;gap:2px;font:700 22px 'Pixelify Sans'}.tdisp b{font-size:22px;font-weight:700}
+.qk{display:flex;gap:6px;margin-top:10px}.qk div{flex:1;height:38px;display:flex;align-items:center;justify-content:center;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;box-shadow:inset 0 -4px 0 #E6DFC9;font:700 12px 'DM Sans';cursor:pointer;transition:transform .12s,background .15s}.qk div:hover{transform:translateY(-2px)}.qk div.on{background:var(--g1);box-shadow:inset 0 -4px 0 var(--g2)}
+.pn.open{max-height:210px!important}.dc{font:700 14px 'DM Sans'!important}.stb{font-size:20px!important}
+</style></head><body>
+<div class="lbl" style="left:60px">1 Login</div><div class="lbl" style="left:510px">2 Create your explorer</div><div class="lbl" style="left:960px">3 Home map</div><div class="lbl" style="left:1410px">4 Match found</div><div class="lbl" style="left:1860px">5 Trip complete</div><div class="lbl" style="left:2310px">6 Home map, street style</div><div class="lbl" style="left:2760px">7 Route, street style</div>
+
+<div id="jump"></div><div id="wrap"><div id="stage"></div></div><section class="scr" style="left:60px" id="s1" data-screen-label="01 Login"></section>
+<section class="scr" style="left:510px;background:var(--parch)" id="s2" data-screen-label="02 Explorer"></section>
+<section class="scr" style="left:960px" id="s3" data-screen-label="03 Home map"></section>
+<section class="scr" style="left:1410px" id="s4" data-screen-label="04 Match found"></section>
+<section class="scr" style="left:1860px" id="s5" data-screen-label="05 Trip complete"></section>
+
+<section class="scr" style="left:2310px" id="s6" data-screen-label="06 Home street map"></section>
+<section class="scr" style="left:2760px" id="s7" data-screen-label="07 Route"></section>
+<script>
+const INK='#1F2A1D';
+const coin=(s=24)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="flex:none"><rect x="2" y="2" width="20" height="20" rx="3" fill="#E8B23A" stroke="${INK}" stroke-width="3"/><rect x="5" y="5" width="6" height="3" fill="#F6D77A"/><rect x="4" y="16" width="16" height="3" fill="#B98A1E"/><rect x="10" y="9" width="4" height="6" fill="#B98A1E"/></svg>`;
+const flag=(s=24,c='#D0452F')=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="flex:none"><rect x="4" y="2" width="3" height="21" fill="${INK}"/><path d="M7 3h13v9H7z" fill="${c}" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="5" width="7" height="2" fill="#fff" opacity=".4"/></svg>`;
+const avatar=(skin,hair,shirt,pants,s=64)=>`<svg width="${s}" height="${s*1.25}" viewBox="0 0 16 20" shape-rendering="crispEdges"><rect x="3" y="0" width="10" height="4" fill="${hair}"/><rect x="2" y="2" width="1" height="5" fill="${hair}"/><rect x="13" y="2" width="1" height="5" fill="${hair}"/><rect x="3" y="4" width="10" height="6" fill="${skin}"/><rect x="5" y="6" width="2" height="2" fill="${INK}"/><rect x="9" y="6" width="2" height="2" fill="${INK}"/><rect x="7" y="9" width="2" height="1" fill="#0003"/><rect x="2" y="10" width="12" height="6" fill="${shirt}"/><rect x="2" y="10" width="2" height="6" fill="${skin}"/><rect x="12" y="10" width="2" height="6" fill="${skin}"/><rect x="3" y="16" width="4" height="4" fill="${pants}"/><rect x="9" y="16" width="4" height="4" fill="${pants}"/><rect x="2" y="15" width="12" height="1" fill="#0002"/></svg>`;
+const AV=[['#F0C49A','#4A2E1B','#4FA3C7','#3B4A6B'],['#B77B52','#1F1A14','#D0452F','#3B3B3B'],['#F6D3B0','#E8B23A','#4E8A2B','#6B4423']];
+const cloud=(x,y,w,h)=>`<div class="cloud" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"><b style="left:${w*.15}px;top:-${h*.6}px;width:${w*.4}px;height:${h*.6}px"></b><b style="left:${w*.5}px;top:-${h*.9}px;width:${w*.3}px;height:${h*.9}px"></b></div>`;
+const xpbar=(n)=>`<div class="xp">${Array.from({length:10},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}</div>`;
+
+// ---------- map ----------
+function mapSVG(){
+ const C=30,W=390,H=870,cols=13,rows=29;let o='';
+ let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+ const rc=r=>r<5?10:r<10?8:r<17?6:r<23?8:10;
+ const riv=(c,r)=>c>=rc(r)&&c<rc(r)+3;
+ const bank=(c,r)=>!riv(c,r)&&c>=rc(r)-1&&c<rc(r)+4;
+ const road=(c,r)=>(r==14)||(c==2&&r>=3&&r<=24)||(r==21&&c>=2);
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+  const x=c*C,y=r*C;
+  let f=(c+r)%2?'#7DBB4A':'#76B444';
+  if(bank(c,r))f=(c+r)%2?'#E6D49A':'#DCC98B';
+  if(riv(c,r))f=(c+r)%2?'#4FA3C7':'#58AACD';
+  if(road(c,r)&&!riv(c,r))f='#8A5A35';
+  o+=`<rect x="${x}" y="${y}" width="${C}" height="${C}" fill="${f}"/>`;
+  if(riv(c,r)){ if(rnd()<.5)o+=`<rect x="${x+6+rnd()*10|0}" y="${y+6+rnd()*14|0}" width="10" height="4" fill="#9ED3E8"/>`;
+   if(!riv(c-1,r))o+=`<rect x="${x}" y="${y}" width="3" height="${C}" fill="#2F7A9E" opacity=".55"/>`;}
+  else if(road(c,r)){o+=`<rect x="${x+4+rnd()*14|0}" y="${y+4+rnd()*16|0}" width="5" height="5" fill="#6B4423"/><rect x="${x+8+rnd()*14|0}" y="${y+8+rnd()*12|0}" width="4" height="4" fill="#A0703F"/>`;}
+  else if(bank(c,r)){ if(rnd()<.4)o+=`<rect x="${x+5+rnd()*16|0}" y="${y+5+rnd()*16|0}" width="4" height="4" fill="#C2AE72"/>`;}
+  else if(rnd()<.18){const tx=x+6+rnd()*14|0,ty=y+8+rnd()*12|0;o+=`<rect x="${tx}" y="${ty}" width="3" height="6" fill="#4E8A2B"/><rect x="${tx+6}" y="${ty+3}" width="3" height="4" fill="#4E8A2B"/>`;}
+ }
+ // road edges
+ o+=`<rect x="0" y="${14*C}" width="${W}" height="3" fill="#6B4423"/><rect x="0" y="${15*C-3}" width="${W}" height="3" fill="#6B4423"/>`;
+ // bridges
+ const bridge=(c0,c1,r)=>{const x=c0*C,w=(c1-c0+1)*C,y=r*C-4;let b=`<rect x="${x}" y="${y}" width="${w}" height="${C+8}" fill="#A0703F" stroke="${INK}" stroke-width="3"/>`;
+  for(let i=1;i<(c1-c0+1)*2;i++)b+=`<rect x="${x+i*15-1}" y="${y+3}" width="2" height="${C+2}" fill="#6B4423"/>`;
+  b+=`<rect x="${x-2}" y="${y-5}" width="${w+4}" height="6" fill="#6B4423" stroke="${INK}" stroke-width="2.5"/><rect x="${x-2}" y="${y+C+6}" width="${w+4}" height="6" fill="#6B4423" stroke="${INK}" stroke-width="2.5"/>`;
+  for(let i=0;i<=(c1-c0+1);i+=1)b+=`<rect x="${x-2+i*C}" y="${y-8}" width="6" height="10" fill="#8A5A35" stroke="${INK}" stroke-width="2"/><rect x="${x-2+i*C}" y="${y+C+4}" width="6" height="10" fill="#8A5A35" stroke="${INK}" stroke-width="2"/>`;
+  return b};
+ o+=bridge(5,9,14)+bridge(7,11,21);
+ // trees
+ const tree=(c,r)=>{const x=c*C,y=r*C;return `<rect x="${x+11}" y="${y+18}" width="8" height="12" fill="#6B4423" stroke="${INK}" stroke-width="2"/><rect x="${x+1}" y="${y-4}" width="28" height="26" fill="#2F6A1C" stroke="${INK}" stroke-width="3"/><rect x="${x+1}" y="${y-4}" width="28" height="12" fill="#4E8A2B"/><rect x="${x+4}" y="${y-1}" width="8" height="4" fill="#7DBB4A"/><rect x="${x+1}" y="${y-4}" width="28" height="26" fill="none" stroke="${INK}" stroke-width="3"/>`};
+ [[0,2],[4,2],[1,5],[5,5],[0,9],[5,9],[1,12],[4,11],[0,17],[1,19],[5,18],[4,22],[11,13],[12,16],[10,17],[12,7],[12,19],[11,25],[6,25],[1,26]].forEach(([c,r])=>o+=tree(c,r));
+ // buildings
+ const bld=(x,y,w,h,name,roof='#8A5A35')=>`<rect x="${x}" y="${y+h*.35}" width="${w}" height="${h*.65}" fill="#D9D3BE" stroke="${INK}" stroke-width="3"/><rect x="${x+3}" y="${y+h-9}" width="${w-6}" height="6" fill="#B8B6AC"/><rect x="${x+w/2-6}" y="${y+h-20}" width="12" height="17" fill="#6B4423" stroke="${INK}" stroke-width="2.5"/><rect x="${x+8}" y="${y+h*.5}" width="9" height="9" fill="#9FD3EA" stroke="${INK}" stroke-width="2.5"/><rect x="${x+w-17}" y="${y+h*.5}" width="9" height="9" fill="#9FD3EA" stroke="${INK}" stroke-width="2.5"/><rect x="${x-5}" y="${y}" width="${w+10}" height="${h*.4}" fill="${roof}" stroke="${INK}" stroke-width="3"/><rect x="${x-2}" y="${y+h*.4-9}" width="${w+4}" height="6" fill="#6B4423"/><rect x="${x+4}" y="${y+4}" width="${w*.35}" height="5" fill="#A0703F"/><g><rect x="${x+w/2-name.length*4.4-6}" y="${y+h+8}" width="${name.length*8.8+12}" height="20" fill="#F5EEDC" stroke="${INK}" stroke-width="2.5"/><text x="${x+w/2}" y="${y+h+23}" text-anchor="middle" font-family="Pixelify Sans" font-weight="600" font-size="13" fill="${INK}">${name}</text></g>`;
+ o+=bld(98,206,76,64,'Library')+bld(94,486,60,52,'Hostel')+bld(302,296,70,52,'Canteen');
+ // flags
+ const fl=(x,y,c)=>`<ellipse cx="${x+10}" cy="${y+24}" rx="11" ry="4" fill="#0003"/><rect x="${x}" y="${y-4}" width="4" height="28" fill="${INK}"/><path d="M${x+4} ${y-3}h18v11H${x+4}z" fill="${c}" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><rect x="${x+7}" y="${y}" width="8" height="2.5" fill="#fff" opacity=".4"/>`;
+ o+=fl(30,300,'#D0452F')+fl(180,372,'#D0452F')+fl(256,180,'#E8B23A')+fl(340,428,'#E8B23A')+fl(200,610,'#E8B23A')+fl(30,590,'#D0452F');
+ // player
+ o+=`<circle cx="135" cy="435" r="42" fill="#3A7BE0" opacity=".18"/><circle cx="135" cy="435" r="28" fill="#3A7BE0" opacity=".25"/><rect x="123" y="423" width="24" height="24" fill="#3A7BE0" stroke="#fff" stroke-width="3"/><rect x="123" y="423" width="24" height="24" fill="none" stroke="${INK}" stroke-width="1.5"/><rect x="127" y="427" width="8" height="5" fill="#8FB8F5"/><rect x="123" y="440" width="24" height="7" fill="#2A5CB0"/>`;
+ return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${o}</svg>`;
+}
+const hud=()=>`<div style="position:absolute;top:50px;left:14px;right:14px;display:flex;gap:10px">
+ <div class="blk" style="display:flex;align-items:center;gap:8px;padding:0 12px;height:62px;flex:none">${coin(30)}<div><div style="font:700 10px 'DM Sans';letter-spacing:1px">VAULT</div><div class="px" style="font-weight:700;font-size:24px;line-height:1">1,240</div></div></div>
+ <div class="blk" style="flex:1;display:flex;align-items:center;gap:10px;padding:0 10px;height:62px"><div class="lv">7</div><div style="flex:1"><div style="display:flex;justify-content:space-between;font:700 10px 'DM Sans';letter-spacing:1px;margin-bottom:4px"><span>LEVEL 7</span><span>340 / 500 XP</span></div>${xpbar(7)}</div></div></div>`;
+
+// ---------- 1 login ----------
+s1.innerHTML=`${cloud(30,70,90,26)}${cloud(250,120,110,30)}${cloud(-10,300,70,22)}${cloud(310,330,100,26)}
+<div style="position:absolute;top:66px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+<svg width="92" height="92" viewBox="0 0 92 92" shape-rendering="crispEdges"><polygon points="46,6 86,26 46,46 6,26" fill="#7DBB4A" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><polygon points="6,26 46,46 46,88 6,68" fill="#8A5A35" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><polygon points="86,26 46,46 46,88 86,68" fill="#6B4423" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><polygon points="6,26 46,46 46,58 28,49 17,50 6,38" fill="#4E8A2B" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><polygon points="86,26 46,46 46,56 66,48 76,50 86,38" fill="#3F7222" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><polygon points="30,18 46,26 62,18 46,10" fill="#9ED36B"/><rect x="12" y="58" width="8" height="8" fill="#6B4423"/><rect x="60" y="64" width="8" height="8" fill="#52341A"/></svg>
+<div class="px" style="font-weight:700;font-size:44px;letter-spacing:3px;margin-top:10px;color:#fff;text-shadow:0 4px 0 ${INK},3px 0 0 ${INK},-3px 0 0 ${INK},0 -3px 0 ${INK},3px 3px 0 ${INK},-3px 3px 0 ${INK},3px -3px 0 ${INK},-3px -3px 0 ${INK}">KURUKURU</div>
+<div style="font:700 13px 'DM Sans';letter-spacing:1px;margin-top:12px;background:var(--parch);border:3px solid ${INK};border-radius:6px;padding:3px 10px">RIDE. EXPLORE. CLAIM.</div></div>
+<div class="blk" style="position:absolute;left:24px;right:24px;top:300px;padding:20px 18px 14px">
+<label class="fl">Campus email</label><input class="fld" placeholder="name@kiit.ac.in" style="margin-bottom:14px"><label class="fl">Password</label><input class="fld" type="password" placeholder="Your secret code" style="margin-bottom:20px">
+<button class="btn">Enter campus</button>
+<div style="display:flex;align-items:center;gap:10px;margin:12px 0 10px;font:700 12px 'DM Sans'"><i style="flex:1;height:3px;background:${INK}"></i>OR<i style="flex:1;height:3px;background:${INK}"></i></div>
+<button class="btn alt"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="1" y="1" width="8" height="8" fill="#D0452F"/><rect x="11" y="1" width="8" height="8" fill="#E8B23A"/><rect x="1" y="11" width="8" height="8" fill="#4E8A2B"/><rect x="11" y="11" width="8" height="8" fill="#4FA3C7"/></svg>Continue with Google</button></div>
+<div style="position:absolute;left:24px;right:24px;top:688px;text-align:center;font:500 14px 'DM Sans';background:#FFFCF2;border:3px solid ${INK};border-radius:6px;padding:8px 10px;display:flex;gap:8px;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" style="flex:none"><rect x="1" y="6" width="12" height="7" fill="#8E8C82" stroke="${INK}" stroke-width="2"/><rect x="3" y="1" width="8" height="6" fill="none" stroke="${INK}" stroke-width="2"/></svg>Only kiit.ac.in emails work</div>
+<div class="ground" style="height:96px;background:#7DBB4A;border-top:3px solid ${INK}"><div style="height:24px;background:repeating-linear-gradient(90deg,#4E8A2B 0 30px,#5F9C37 30px 60px);box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)"></div><div style="height:100%;background:repeating-linear-gradient(90deg,#8A5A35 0 30px,#7D4F2E 30px 60px);position:relative;top:0;border-top:3px solid ${INK}"></div></div>`;
+
+// ---------- 2 profile ----------
+const icFoot=`<svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="3" width="8" height="15" fill="#8A5A35" stroke="${INK}" stroke-width="3"/><rect x="4" y="18" width="12" height="6" fill="#6B4423" stroke="${INK}" stroke-width="3"/><rect x="17" y="8" width="8" height="12" fill="#8A5A35" stroke="${INK}" stroke-width="3"/><rect x="17" y="20" width="9" height="5" fill="#6B4423" stroke="${INK}" stroke-width="3"/></svg>`;
+const icScoot=`<svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="16" width="8" height="8" fill="#555" stroke="${INK}" stroke-width="3"/><rect x="18" y="16" width="8" height="8" fill="#555" stroke="${INK}" stroke-width="3"/><rect x="9" y="14" width="12" height="5" fill="#4FA3C7" stroke="${INK}" stroke-width="3"/><rect x="19" y="3" width="4" height="12" fill="${INK}"/><rect x="15" y="2" width="9" height="4" fill="${INK}"/></svg>`;
+const icCar=`<svg width="28" height="28" viewBox="0 0 28 28"><rect x="6" y="6" width="16" height="9" fill="#9FD3EA" stroke="${INK}" stroke-width="3"/><rect x="2" y="13" width="24" height="9" fill="#D0452F" stroke="${INK}" stroke-width="3"/><rect x="5" y="20" width="6" height="6" fill="#444" stroke="${INK}" stroke-width="2.5"/><rect x="17" y="20" width="6" height="6" fill="#444" stroke="${INK}" stroke-width="2.5"/></svg>`;
+s2.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:130px;background:var(--sky);border-bottom:3px solid ${INK}">${cloud(40,50,80,22)}${cloud(260,70,90,24)}<div style="position:absolute;left:0;right:0;bottom:0;height:22px;background:repeating-linear-gradient(90deg,#7DBB4A 0 30px,#76B444 30px 60px);box-shadow:inset 0 -6px 0 #4E8A2B"></div></div>
+<div style="position:absolute;top:60px;left:24px;right:24px"><div class="px" style="font-weight:700;font-size:34px;line-height:1.05;color:#fff;text-shadow:0 3px 0 ${INK},2px 0 0 ${INK},-2px 0 0 ${INK},0 -2px 0 ${INK},2px 2px 0 ${INK},-2px 2px 0 ${INK}">Create your explorer</div></div>
+<div style="position:absolute;top:156px;left:24px;right:24px">
+<label class="fl">Pick an avatar</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">${AV.map((a,i)=>`<div class="av ${i==0?'on':''}">${avatar(...a,56)}</div>`).join('')}</div>
+<label class="fl">Explorer name</label><input class="fld" value="BlockHopper" style="margin-bottom:20px">
+<label class="fl">Travel mode</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div class="opt">${icFoot}On foot</div><div class="opt on">${icScoot}Scooter</div><div class="opt">${icCar}Car</div></div>
+<label class="fl">Vehicle model <span style="text-transform:none;font-weight:500;letter-spacing:0">(optional)</span></label><input class="fld" placeholder="e.g. Activa 6G"></div>
+<div style="position:absolute;left:24px;right:24px;bottom:30px"><button class="btn">Start exploring</button><div style="text-align:center;margin-top:8px"><a href="#" style="font:700 15px 'DM Sans';display:inline-block;padding:12px 20px">Skip for now</a></div></div>`;
+
+// ---------- 3 home ----------
+const sheet3=`<div class="blk sheet"><div style="width:44px;height:6px;background:${INK};border-radius:2px;margin:-6px auto 14px;opacity:.5"></div><div class="tgl" style="margin-bottom:12px"><div class="on">Pilot</div><div>Co-Pilot</div></div><label class="fl">Leave a note at this spot</label><input class="fld" placeholder="Best chai behind the library" style="margin-bottom:16px"><button class="btn" style="min-height:60px;font-size:24px">${flag(26)}Plant flag here</button></div>`;
+s3.innerHTML=`${hud()}
+<div style="position:absolute;top:126px;left:14px;right:14px;display:flex;align-items:center;gap:10px;background:var(--g1);border:3px solid ${INK};border-radius:6px;box-shadow:0 4px 0 ${INK},inset 0 -4px 0 var(--g2);padding:10px 12px;min-height:52px">${flag(24,'#E8B23A')}<div style="flex:1"><div class="px" style="font-weight:700;font-size:16px;line-height:1.1">New territory discovered</div><div style="font:500 12px 'DM Sans'">First flag in Canteen Lane</div></div><div class="px" style="font-weight:700;font-size:20px;background:var(--parch);border:3px solid ${INK};border-radius:6px;padding:2px 8px">+50 XP</div></div>${sheet3}`;
+
+// ---------- 4 match ----------
+const route=()=>{const pts=[[0,3],[1,3],[2,3],[2,2],[2,1],[3,1],[4,1],[5,1],[5,2],[5,3],[6,3],[7,3],[8,3],[8,2],[8,1],[9,1],[10,1]];return `<svg width="100%" height="74" viewBox="0 0 330 74" shape-rendering="crispEdges">${pts.slice(1,-1).map(([x,y])=>`<rect x="${14+x*28-6}" y="${y*14+6}" width="12" height="12" fill="#8A5A35" stroke="${INK}" stroke-width="2.5"/>`).join('')}<rect x="2" y="38" width="22" height="22" fill="#3A7BE0" stroke="${INK}" stroke-width="3"/><g transform="translate(284,2)"><rect x="4" y="0" width="4" height="40" fill="${INK}"/><path d="M8 2h22v14H8z" fill="#D0452F" stroke="${INK}" stroke-width="3"/></g></svg>`};
+s4.innerHTML=`<div class="map">${mapSVG()}</div><div style="position:absolute;inset:0;background:rgba(31,42,29,.45)"></div>${hud()}
+<div class="blk sheet" style="padding-top:20px"><div style="display:flex;align-items:center;gap:6px;background:var(--gold);border:3px solid ${INK};border-radius:6px;padding:3px 10px;width:max-content;font:700 16px 'Pixelify Sans';margin-bottom:14px;box-shadow:inset 0 -3px 0 #B98A1E">Match found</div>
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><div class="av on" style="width:76px;height:84px;flex:none;box-shadow:inset 0 -5px 0 var(--g2)"><style>.av.on.m:after{display:none}</style>${avatar(...AV[1],44)}</div><div style="flex:1"><div class="px" style="font-weight:700;font-size:24px;line-height:1.1">Aarav</div><div style="font:500 14px 'DM Sans';margin:2px 0 8px">Pilot, Scooter</div><div style="display:flex;gap:8px;align-items:center"><span class="lv" style="width:auto;height:26px;padding:0 8px;font-size:14px">LV 5</span><span style="font:700 13px 'DM Sans'">4 min away</span></div></div>
+<div style="text-align:right"><div style="font:700 10px 'DM Sans';letter-spacing:1px">FARE</div><div style="display:flex;gap:6px;align-items:center;justify-content:flex-end">${coin(26)}<span class="px" style="font-weight:700;font-size:32px;line-height:1">12</span></div></div></div>
+<div style="background:#E6DFC9;border:3px solid ${INK};border-radius:6px;padding:10px 12px 8px;margin-bottom:18px;box-shadow:inset 0 3px 0 rgba(31,42,29,.1)">${route()}<div style="display:flex;justify-content:space-between;font:700 15px 'Pixelify Sans'"><span>Hostel</span><span>Library</span></div></div>
+<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:12px"><button class="btn stone" style="font-size:20px">Decline</button><button class="btn" style="font-size:20px">Accept</button></div></div>`;
+
+// ---------- 5 trip ----------
+s5.innerHTML=`${cloud(30,60,90,26)}${cloud(260,110,100,28)}
+<div style="position:absolute;top:100px;left:24px;right:24px;text-align:center"><div class="px" style="font-weight:700;font-size:42px;line-height:1;color:#fff;text-shadow:0 4px 0 ${INK},3px 0 0 ${INK},-3px 0 0 ${INK},0 -3px 0 ${INK},3px 3px 0 ${INK},-3px 3px 0 ${INK}">Trip complete</div><div style="font:500 16px 'DM Sans';margin-top:14px;background:var(--parch);display:inline-block;border:3px solid ${INK};border-radius:6px;padding:4px 12px">Hostel to Library with Aarav</div></div>
+<div style="position:absolute;top:240px;left:24px;right:24px;display:flex;flex-direction:column;gap:16px">
+<div class="blk" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--gold);box-shadow:0 4px 0 ${INK},inset 0 -5px 0 #B98A1E">${coin(52)}<div><div style="font:700 12px 'DM Sans';letter-spacing:1px">COINS EARNED</div><div class="px" style="font-weight:700;font-size:40px;line-height:1">+12</div></div><div style="margin-left:auto;text-align:right;font:700 13px 'DM Sans'">Vault<br><span class="px" style="font-size:20px">1,252</span></div></div>
+<div class="blk" style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:10px"><div><div style="font:700 12px 'DM Sans';letter-spacing:1px">XP GAINED</div><div class="px" style="font-weight:700;font-size:40px;line-height:1">+80</div></div><div class="lv">7</div></div>${xpbar(8)}<div style="font:500 13px 'DM Sans';margin-top:8px">420 / 500 XP to level 8</div></div>
+<div class="blk" style="display:flex;align-items:center;gap:16px;padding:16px;background:#E6F1D6"><div style="position:relative;width:64px;height:64px;flex:none;background:var(--g1);border:3px solid ${INK};border-radius:6px;box-shadow:inset 0 -6px 0 var(--g2);display:flex;align-items:center;justify-content:center">${flag(36,'#E8B23A')}</div><div><div style="font:700 12px 'DM Sans';letter-spacing:1px;color:var(--g2)">BADGE UNLOCKED</div><div class="px" style="font-weight:700;font-size:24px;line-height:1.1">Trailblazer</div><div style="font:500 13px 'DM Sans'">5 new spots discovered</div></div></div></div>
+<div style="position:absolute;left:24px;right:24px;bottom:132px"><button class="btn" style="min-height:60px;font-size:24px">Back to map</button></div>
+<div class="ground" style="height:96px;background:#7DBB4A;border-top:3px solid ${INK}"><div style="height:24px;background:repeating-linear-gradient(90deg,#4E8A2B 0 30px,#5F9C37 30px 60px);box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)"></div><div style="height:100%;background:repeating-linear-gradient(90deg,#8A5A35 0 30px,#7D4F2E 30px 60px);border-top:3px solid ${INK}"></div></div>`;
+s5.querySelector('.ground').style.height='96px';
+// ---------- street-style map (stand-in for Google Maps tiles) ----------
+const ROUTE=[[150,190],[128,172],[123,236],[112,412],[135,429],[135,484],[146,495],[240,495],[240,594],[243,598]],S0=ROUTE[0],E0=ROUTE[ROUTE.length-1];
+function streetSVG(route){
+ const major=['M123,-10 L123,236 L112,412 L135,429 L135,484 L146,495','M-10,586 L400,616','M240,270 L240,700'];
+ const minor=['M-10,110 L123,110','M123,172 L400,160','M-10,300 L123,300','M-10,360 L112,360','M123,236 L400,236','M240,300 L400,300','M240,360 L400,360','M240,420 L400,420','M240,470 L400,470','M296,236 L296,586','M340,236 L340,586','M190,60 L190,236','M60,236 L60,420','M-10,495 L146,495 L240,495','M300,60 L300,172','M60,520 L60,700','M135,586 L135,760','M310,616 L310,780','M-10,660 L400,690','M128,172 L150,190'];
+ const road=(d,w)=>'<path d="'+d+'" fill="none" stroke="#C9D0DC" stroke-width="'+(w+3)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+ const fill=(d,w,c)=>'<path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="'+w+'" stroke-linejoin="round" stroke-linecap="round"/>';
+ let o='<rect width="390" height="870" fill="#F1F0EC"/><rect x="-10" y="250" width="124" height="320" fill="#E9E8E3"/>';
+ o+='<path d="M114 408 L249 403 L249 497 L131 497 L114 484Z" fill="#B5E3C0"/><rect x="170" y="20" width="16" height="30" fill="#B5E3C0"/><rect x="40" y="150" width="30" height="40" fill="#B5E3C0"/><rect x="316" y="320" width="20" height="30" fill="#B5E3C0"/><rect x="346" y="440" width="30" height="40" fill="#B5E3C0"/>';
+ o+='<path d="M50 432 q14 -8 26 0 q-6 10 -26 4Z M10 438 q8 -5 16 0 q-6 6 -16 2Z M160 502 q12 -6 22 0 q-8 8 -22 2Z" fill="#A8D5F0"/>';
+ let s=11;const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+ for(let x=-5;x<390;x+=22)for(let y=20;y<780;y+=20){ if(rnd()<.45)continue; const bx=x+rnd()*5,by=y+rnd()*4;
+  if((bx>108&&bx<132)||(bx>228&&bx<250)||(by>480&&by<510&&bx<250)||(by>578&&by<630)||(bx>114&&bx<250&&by>395&&by<500)||(bx>285&&bx<305)||(bx>330&&bx<350)||(bx>50&&bx<70&&by>230&&by<420)||(by>228&&by<244)||(by>290&&by<310)||(by>350&&by<370)||(by>412&&by<428)||(by>462&&by<478)||(by>100&&by<120)||(by>150&&by<200)||(bx>180&&bx<200&&by<240))continue;
+  o+='<rect x="'+f(bx)+'" y="'+f(by)+'" width="'+f(9+rnd()*8)+'" height="'+f(8+rnd()*6)+'" fill="#E6E4DF"/>'; }
+ function f(n){return n.toFixed(1)}
+ minor.forEach(d=>o+=road(d,5));major.forEach(d=>o+=road(d,9));
+ minor.forEach(d=>o+=fill(d,5,'#fff'));major.forEach(d=>o+=fill(d,9,'#fff'));
+ o+=fill('M-10,586 L400,616',9,'#FBEFC3');
+ const poi=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="8" fill="#7E97AD"/><rect x="'+(x-3)+'" y="'+(y-3)+'" width="6" height="6" fill="#fff"/>';
+ const t=(x,y,s,c,w,sz,rot)=>'<text x="'+x+'" y="'+y+'" font-family="DM Sans" font-weight="'+(w||500)+'" font-size="'+(sz||10.5)+'" fill="'+(c||'#5F6368')+'" stroke="#F1F0EC" stroke-width="3" paint-order="stroke"'+(rot?' transform="rotate(-90 '+x+' '+y+')"':'')+'>'+s+'</text>';
+ o+=poi(108,128)+t(40,150,'Ram Setu, KIIT','#4F6D85',500)+poi(60,262)+t(70,266,'ION Digital Zone','#4F6D85',500)+poi(278,274)+t(252,296,'KIIT School of Law','#4F6D85',500)+poi(349,540)+t(284,562,'Udaan Sports Academy','#4F6D85',500)+poi(183,610)+t(150,636,'KIIT University','#4F6D85',500)+poi(332,672)+t(280,694,'KIIT Higher Secondary','#4F6D85',500);
+ o+=t(36,486,'PARK Selections','#D6338A',500)+t(236,226,'Jk Rd')+t(300,584,'KIIT Rd','#5F6368',700)+t(100,300,'IT Park Rd','#5F6368',500,10,1).replace('x="100"','x="112"')+t(236,330,'Prasanti Vihar Rd','#5F6368',500,10,1).replace('x="236"','x="248"')+t(304,330,'5th Ln','#5F6368',500,9,1)+t(120,538,'Kalinga Inst','#4F6D85',700,14)+t(120,555,'of Industrial','#4F6D85',700,14)+t(120,572,'Technology','#4F6D85',700,14);
+ if(route){const p=ROUTE.map(q=>q.join(',')).join(' ');o+='<polyline points="'+p+'" fill="none" stroke="#fff" stroke-width="12" stroke-dasharray="0 10" stroke-linecap="round" stroke-linejoin="round"/><polyline points="'+p+'" fill="none" stroke="#3A7BE0" stroke-width="8" stroke-dasharray="0 10" stroke-linecap="round" stroke-linejoin="round"/>';}
+ return o;
+}
+const pin=(x,y,c)=>'<g transform="translate('+x+','+y+')"><ellipse cx="0" cy="2" rx="9" ry="3" fill="#0003"/><path d="M-4,-6 L0,0 L4,-6Z" fill="'+INK+'"/><rect x="-13" y="-42" width="26" height="26" rx="5" fill="'+c+'" stroke="'+INK+'" stroke-width="3"/><path d="M-4,-26 v-12" stroke="#fff" stroke-width="3"/><path d="M-4,-38 h12 v7 h-12z" fill="#fff"/><path d="M-4,-16 L0,-6 L4,-16Z" fill="'+c+'"/></g>';
+const me=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="40" fill="#3A7BE0" opacity=".16"/><circle cx="'+x+'" cy="'+y+'" r="24" fill="#3A7BE0" opacity=".22"/><rect x="'+(x-12)+'" y="'+(y-12)+'" width="24" height="24" rx="3" fill="#3A7BE0" stroke="#fff" stroke-width="3"/><rect x="'+(x-12)+'" y="'+(y-12)+'" width="24" height="24" rx="3" fill="none" stroke="'+INK+'" stroke-width="1.5"/><rect x="'+(x-12)+'" y="'+(y+5)+'" width="24" height="7" fill="#2A5CB0"/>';
+const mapBox=(inner)=>'<div class="map"><svg width="390" height="870" viewBox="0 0 390 870">'+inner+'</svg></div>';
+const locBtn=(b)=>'<div class="blk" style="position:absolute;right:14px;bottom:'+b+'px;width:48px;height:48px;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6" fill="#3A7BE0" stroke="'+INK+'" stroke-width="2"/><path d="M12 1v5M12 18v5M1 12h5M18 12h5" stroke="'+INK+'" stroke-width="3"/></svg></div>';
+
+s6.innerHTML=''+hud()+'<div id="tst" style="display:none;position:absolute;top:126px;left:14px;right:14px;align-items:center;gap:10px;background:var(--g1);border:3px solid '+INK+';border-radius:6px;box-shadow:0 4px 0 '+INK+',inset 0 -4px 0 var(--g2);padding:10px 12px;min-height:52px;pointer-events:none">'+flag(24,'#E8B23A')+'<div style="flex:1"><div class="px" style="font-weight:700;font-size:16px;line-height:1.1">New territory discovered</div><div style="font:500 12px \'DM Sans\'" id="tsub">Keep exploring</div></div><div class="px" style="font-weight:700;font-size:20px;background:var(--parch);border:3px solid '+INK+';border-radius:6px;padding:2px 8px">+50 XP</div></div>'
+ +sheet3;
+const mode=(n,t,on)=>'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:58px;border:3px solid '+INK+';border-radius:6px;background:'+(on?'var(--g1)':'#E6DFC9')+';box-shadow:inset 0 -4px 0 '+(on?'var(--g2)':'#CFC7AB')+'"><span class="px" style="font-weight:700;font-size:16px;line-height:1.1">'+n+'</span><span style="font:700 13px \'DM Sans\'">'+t+'</span></div>';
+const lbl=(x,y,s,a)=>'<text x="'+x+'" y="'+y+'" font-family="Pixelify Sans" font-weight="600" font-size="13" text-anchor="'+(a||'start')+'" fill="'+INK+'" stroke="#F1F0EC" stroke-width="4" paint-order="stroke">'+s+'</text>';
+s7.innerHTML=mapBox(streetSVG(true)+'<rect x="'+(S0[0]-12)+'" y="'+(S0[1]-12)+'" width="24" height="24" rx="3" fill="#3A7BE0" stroke="#fff" stroke-width="3"/><rect x="'+(S0[0]-12)+'" y="'+(S0[1]-12)+'" width="24" height="24" rx="3" fill="none" stroke="'+INK+'" stroke-width="1.5"/>'+pin(E0[0],E0[1],'#D0452F')+lbl(S0[0]+20,S0[1]+4,'CSE Block')+lbl(E0[0]-20,E0[1]-18,'Campus 6','end')+'<g transform="translate(156,436)"><rect width="92" height="40" rx="6" fill="#F5EEDC" stroke="'+INK+'" stroke-width="3"/><text x="46" y="18" text-anchor="middle" font-family="Pixelify Sans" font-weight="700" font-size="16" fill="'+INK+'">27 min</text><text x="46" y="33" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="11" fill="'+INK+'">1.9 km</text></g>')+
+ '<div class="blk" style="position:absolute;top:50px;left:14px;right:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:10px;height:34px"><i style="width:14px;height:14px;background:#3A7BE0;border:2px solid '+INK+';border-radius:2px;flex:none"></i><div style="font:700 15px \'DM Sans\';flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">KIIT School of Computer Science and Eng…</div></div><i style="height:3px;background:'+INK+';opacity:.2;margin-left:24px"></i><div style="display:flex;align-items:center;gap:10px;height:34px">'+flag(18)+'<div style="font:700 15px \'DM Sans\';flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">KIIT Campus 6 (Kosi)</div></div></div>'+
+ '<div class="blk sheet" style="padding-top:20px"><div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:14px"><div><div class="px" style="font-weight:700;font-size:34px;line-height:1">1.9 km</div><div style="font:500 14px \'DM Sans\';margin-top:4px">via IT Park Rd</div></div><div style="display:flex;gap:6px;align-items:center;background:var(--gold);border:3px solid '+INK+';border-radius:6px;padding:4px 10px;box-shadow:inset 0 -3px 0 #B98A1E">'+coin(20)+'<span class="px" style="font-weight:700;font-size:18px">+20 XP</span></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">'+mode('On foot','27 min',1)+mode('Scooter','6 min',0)+mode('Car','6 min',0)+'</div><button class="btn" style="min-height:60px;font-size:24px">Start trip</button></div>';
+</script><script>
+(function(){
+const $=(r,q)=>r.querySelector(q),$$=(r,q)=>[...r.querySelectorAll(q)],E=id=>document.getElementById(id),wait=(f,ms)=>setTimeout(f,ms);
+const stage=E('stage'),wrap=E('wrap'),S={};
+['s1','s2','s3','s6','s4','s5','s7'].forEach(i=>{S[i]=E(i);stage.appendChild(S[i]);});
+const fit=()=>{const k=Math.min(1,(innerHeight-24)/844,(innerWidth-24)/390);stage.style.transform='scale('+k+')';wrap.style.width=390*k+'px';wrap.style.height=844*k+'px';};fit();addEventListener('resize',fit);
+const NAMES=[['s1','Login'],['s2','Explorer'],['s3','Voxel map'],['s6','Street map'],['s4','Match found'],['s7','Route'],['s5','Trip complete']];
+const jump=E('jump');NAMES.forEach(([id,n],i)=>{const b=document.createElement('div');b.className='jb';b.dataset.id=id;b.innerHTML='<span class="px" style="font-size:16px">'+(i+1)+'</span>'+n;b.onclick=()=>go(id);jump.appendChild(b);});
+let cur=null,coins=1240,xp=340,lvl=7,tripDone=false;
+const shake=e=>{e.classList.remove('shake');void e.offsetWidth;e.classList.add('shake');};
+const onEnter={};
+function go(id){if(id===cur)return;if(cur)S[cur].classList.remove('act');const n=S[id];n.classList.add('act');n.classList.remove('enter');void n.offsetWidth;n.classList.add('enter');cur=id;$$(jump,'.jb').forEach(b=>b.classList.toggle('on',b.dataset.id===id));onEnter[id]&&onEnter[id]();}
+// HUD sync
+const coinEls=[],xpTxt=[],xpBars=[],lvEls=[];
+['s3','s4','s6'].forEach(i=>{const s=S[i];$$(s,'.px').forEach(e=>{if(e.textContent==='1,240')coinEls.push(e)});$$(s,'span').forEach(e=>{if(e.textContent.includes('340 / 500'))xpTxt.push(e)});xpBars.push($(s,'.xp'));lvEls.push($(s,'.lv'));});
+function setHud(){coinEls.forEach(e=>e.textContent=coins.toLocaleString('en-US'));xpTxt.forEach(e=>e.textContent=xp+' / 500 XP');const n=Math.min(10,Math.floor(xp/50));xpBars.forEach(b=>$$(b,'i').forEach((i,k)=>i.className=k<n?'on':''));lvEls.forEach(e=>e.textContent=lvl);}
+function reward(c,x){coins+=c;xp+=x;let up=false;while(xp>=500){xp-=500;lvl++;up=true;}setHud();lvEls.forEach(e=>{if(up||x){e.classList.remove('lvpop');void e.offsetWidth;e.classList.add('lvpop');}});return up;}
+// toasts
+const tm={};S.s3._t=$(S.s3,'div[style*="top:126px"]');S.s3._t.style.display='none';
+function toast(id,title,sub,chip){const t=id==='s6'?$(S.s6,'#tst'):S[id]._t;const px=$$(t,'.px'),c=px[px.length-1];px[0].textContent=title;c.textContent=chip||'+50 XP';c.style.display=chip===''?'none':'';t.children[1].lastElementChild.textContent=sub;t.style.display='flex';t.classList.remove('tin');void t.offsetWidth;t.classList.add('tin');clearTimeout(tm[id]);tm[id]=wait(()=>{t.style.display='none';c.style.display='';c.textContent='+50 XP';},2800);}
+// sheets
+function wireSheet(id,plant){const s=S[id],sh=$(s,'.sheet'),tg=$$(sh,'.tgl div'),btn=$(sh,'.btn'),inp=$(sh,'.fld'),lab=$(sh,'.fl');const ph=btn.innerHTML,pl=inp.placeholder,lt=lab.textContent;let busy=false;
+ const set=m=>{tg.forEach((d,i)=>d.classList.toggle('on',(i===0)===(m==='pilot')));s._mode=m;if(m==='co'){btn.textContent='Find a Pilot';inp.placeholder='Where to? e.g. Library';lab.textContent='Destination';}else{btn.innerHTML=ph;inp.placeholder=pl;lab.textContent=lt;}};
+ tg.forEach((d,i)=>d.addEventListener('click',()=>{if(!busy)set(i?'co':'pilot')}));
+ btn.addEventListener('click',e=>{if(s._mode==='co'){e.stopImmediatePropagation();set('pilot');go('s8');KK.setRole('co');}else if(plant)plant(e);},true);
+ s._set=set;}
+// layer switch
+function layer(id,target){const b=document.createElement('div');b.className='blk';b.dataset.tap=1;b.style.cssText='position:absolute;right:14px;bottom:372px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;z-index:3';b.innerHTML='<svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="12" width="20" height="10" fill="#8A5A35" stroke="#1F2A1D" stroke-width="3"/><rect x="3" y="4" width="20" height="10" fill="#7DBB4A" stroke="#1F2A1D" stroke-width="3"/></svg>';b.onclick=()=>go(target);S[id].appendChild(b);}
+// ---- screen 1
+{const s=S.s1,[em,pw]=$$(s,'.fld'),btn=$(s,'.btn:not(.alt)'),g=$(s,'.btn.alt'),card=$(s,'.blk');em.value='2205123@kiit.ac.in';pw.value='campus123';
+ const err=document.createElement('div');err.className='err';err.textContent='Use your kiit.ac.in email';em.after(err);
+ em.addEventListener('input',()=>err.style.display='none');
+ btn.onclick=()=>{if(!/^[^@\s]+@kiit\.ac\.in$/i.test(em.value.trim())){err.style.display='block';shake(card);return;}btn.textContent='Entering…';wait(()=>{btn.textContent='Enter campus';go('s2');},700);};
+ g.onclick=()=>{g.lastChild.textContent='Connecting…';wait(()=>{g.lastChild.textContent='Continue with Google';go('s2');},700);};}
+// ---- screen 2
+{const s=S.s2,av=$$(s,'.av'),op=$$(s,'.opt'),[nm,vh]=$$(s,'.fld'),start=$(s,'.btn'),skip=$(s,'a');
+ av.forEach(a=>a.onclick=()=>{av.forEach(x=>x.classList.remove('on'));a.classList.add('on');});
+ op.forEach((o,i)=>o.onclick=()=>{op.forEach(x=>x.classList.remove('on'));o.classList.add('on');vh.disabled=i===0;});
+ start.onclick=()=>{if(!nm.value.trim()){shake(nm);nm.focus();return;}start.textContent='Loading map…';wait(()=>{start.textContent='Start exploring';go('s3');},650);};
+ skip.onclick=e=>{e.preventDefault();go('s3');};}
+// ---- screen 3
+wireSheet('s3',null);layer('s3','s6');
+// ---- screen 6
+wireSheet('s6',null);layer('s6','s3');
+onEnter.s3=onEnter.s6=function(){const s=S[cur];s._set&&s._set('pilot');};
+let first=true;const o3=onEnter.s3;onEnter.s3=function(){o3();if(first){first=false;wait(()=>toast('s3','New territory discovered','First flag in Canteen Lane','+50 XP'),700);}};
+// ---- screen 4
+{const s=S.s4,dec=$(s,'.btn.stone'),acc=$(s,'.btn:not(.stone)');
+ acc.onclick=()=>{acc.textContent='Matched!';wait(()=>{acc.textContent='Accept';go('s7');},550);};
+ dec.onclick=()=>{go('s3');wait(()=>toast('s3','Request cancelled','We will keep looking',''),350);};}
+// ---- screen 7
+{const s=S.s7,sv=$(s,'.map svg'),pls=$$(sv,'polyline'),modes=$$(s,'div[style*="repeat(3,1fr)"] > div'),btn=$(s,'.sheet .btn'),call=$$(sv,'text').find(t=>t.textContent==='27 min');
+ const MD=[{t:'27 min',dash:'0 10',dur:7000},{t:'6 min',dash:'none',dur:4200},{t:'6 min',dash:'none',dur:3600}];let sel=0,run=false;
+ const paint=()=>modes.forEach((m,i)=>{m.style.background=i===sel?'var(--g1)':'#E6DFC9';m.style.boxShadow='inset 0 -4px 0 '+(i===sel?'var(--g2)':'#CFC7AB');m.dataset.tap=1;m.style.cursor='pointer';m.style.transition='transform .12s,background .15s';});
+ modes.forEach((m,i)=>m.onclick=()=>{if(run)return;sel=i;paint();call.textContent=MD[i].t;pls.forEach(p=>p.setAttribute('stroke-dasharray',MD[i].dash));});paint();
+ const back=document.createElement('div');back.className='blk';back.dataset.tap=1;back.style.cssText='position:absolute;left:14px;top:184px;width:48px;height:48px;display:flex;align-items:center;justify-content:center';back.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#1F2A1D" stroke-width="4" stroke-linecap="square"/></svg>';back.onclick=()=>{if(!run)go('s3');};s.appendChild(back);
+ btn.onclick=()=>{if(run)return;run=true;const pts=ROUTE,L=[];let tot=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);L.push(d);tot+=d;}
+  const old=E('tm');old&&old.remove();sv.insertAdjacentHTML('beforeend','<g id="tm" style="transform:translate(150px,190px)"><circle class="halo" r="24" fill="#3A7BE0" opacity=".25"/><rect x="-11" y="-11" width="22" height="22" fill="#7DBB4A" stroke="#1F2A1D" stroke-width="3"/><rect x="-11" y="4" width="22" height="7" fill="#4E8A2B"/></g>');
+  const m=E('tm'),t0=performance.now(),dur=MD[sel].dur;
+  const step=n=>{const p=Math.min(1,(n-t0)/dur);let d=p*tot,i=0;while(i<L.length-1&&d>L[i]){d-=L[i];i++;}const f=Math.min(1,d/L[i]),a=pts[i],b=pts[i+1];m.style.transform='translate('+(a[0]+(b[0]-a[0])*f)+'px,'+(a[1]+(b[1]-a[1])*f)+'px)';btn.textContent='On the way… '+Math.round(p*100)+'%';
+   if(p<1)requestAnimationFrame(step);else{m.remove();run=false;btn.textContent='Start trip';tripDone=true;go('s5');}};requestAnimationFrame(step);};}
+// ---- screen 5
+{const s=S.s5,px=$$(s,'.px'),cE=px.find(e=>e.textContent==='+12'),xE=px.find(e=>e.textContent==='+80'),vE=px.find(e=>e.textContent==='1,252'),bar=$(s,'.xp'),lt=$$(s,'div').find(e=>e.children.length===0&&e.textContent.includes('to level')),blks=$$(s,'.blk'),badge=blks.find(b=>b.textContent.includes('BADGE')).firstElementChild,back=$$(s,'.btn').pop();
+ blks.forEach((b,i)=>{b.classList.add('rw');b.style.animationDelay=(.15+i*.18)+'s';});
+ const cnt=(el,to,pre,from,ms)=>{const t0=performance.now();const f=n=>{const p=Math.min(1,(n-t0)/ms);el.textContent=pre+Math.round(from+(to-from)*p).toLocaleString('en-US');if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);};
+ back.onclick=()=>go('s3');
+ onEnter.s5=function(){let before=coins;if(tripDone){tripDone=false;reward(12,80);}cnt(cE,12,'+',0,900);cnt(xE,80,'+',0,1100);cnt(vE,coins,'',coins-12,1100);
+  const n=Math.min(10,Math.floor(xp/50));$$(bar,'i').forEach(i=>i.className='');for(let k=0;k<n;k++)wait(()=>$$(bar,'i')[k].className='on',500+k*110);lt.textContent=xp+' / 500 XP to level '+(lvl+1);
+  badge.classList.remove('pop');void badge.offsetWidth;badge.style.animationDelay='1s';badge.classList.add('pop');};}
+window.KK={go,S,toast,reward,onEnter,shake,get cur(){return cur}};setHud();go('s1');
+})();
+</script>
+<script src="explore.js"></script><script src="plan-flow.js"></script></body></html>
