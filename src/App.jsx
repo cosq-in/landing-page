@@ -271,6 +271,9 @@ export default function App() {
       <footer>
         <div className="wrap">
           <span className="px" style={{ fontSize: 20, letterSpacing: 2 }}>KURUKURU</span>
+          <span>
+            <a href="/privacy" style={{ color: 'inherit' }}>Privacy</a> · <a href="/terms" style={{ color: 'inherit' }}>Terms</a> · <a href="/delete-account" style={{ color: 'inherit' }}>Delete account</a> · <a href="/support" style={{ color: 'inherit' }}>Support</a>
+          </span>
           <span>© 2026 Kurukuru. Exploring the Neon Frontier.</span>
         </div>
       </footer>
