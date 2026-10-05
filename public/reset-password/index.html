@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>reset password | kurukuru</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet" />
+    <style>
+      :root{--ink:#1F2A1D;--g1:#7DBB4A;--g2:#4E8A2B;--parch:#F5EEDC;--sky:#9FD3EA;--red:#D0452F}
+      *{box-sizing:border-box}
+      body{margin:0;min-height:100vh;background:var(--sky);color:var(--ink);font:400 17px/1.5 'DM Sans',sans-serif;text-transform:lowercase;display:flex;align-items:center;justify-content:center;padding:24px}
+      .card{width:min(420px,100%);background:var(--parch);border:3px solid var(--ink);border-radius:6px;box-shadow:0 4px 0 var(--ink);padding:24px}
+      h1{font:700 32px/1.1 'Pixelify Sans',monospace;margin:0 0 8px}
+      p{margin:0 0 16px}
+      label{display:block;font:700 12px 'DM Sans';letter-spacing:1px;margin:0 0 6px}
+      input{width:100%;font:500 16px 'DM Sans';padding:13px 14px;border:3px solid var(--ink);border-radius:6px;background:#FFFCF2;margin-bottom:14px}
+      input:focus{outline:none;border-color:var(--g2)}
+      button{width:100%;min-height:52px;border:3px solid var(--ink);border-radius:6px;background:var(--g1);color:var(--ink);font:700 22px 'Pixelify Sans',monospace;box-shadow:0 5px 0 var(--ink),inset 0 -5px 0 var(--g2);cursor:pointer}
+      button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink),inset 0 -5px 0 var(--g2)}
+      button:disabled{opacity:.55;cursor:default}
+      #msg{min-height:22px;margin:12px 0 0;font:700 14px 'DM Sans'}
+      .err{color:var(--red)}.ok{color:var(--g2)}
+      .hide{display:none}
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>reset your password</h1>
+      <p id="intro">choose a new password for your kurukuru account.</p>
+      <form id="f" class="hide">
+        <label for="p1">new password</label>
+        <input id="p1" type="password" autocomplete="new-password" minlength="6" required />
+        <label for="p2">type it again</label>
+        <input id="p2" type="password" autocomplete="new-password" minlength="6" required />
+        <button id="go" type="submit">save password</button>
+      </form>
+      <p id="msg" role="status"></p>
+    </main>
+    <script>
+      // Supabase sends people here with the recovery session in the URL hash. The anon key is public by design.
+      var SUPABASE_URL = 'https://ywmwtidrrjmzaotfloji.supabase.co';
+      var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3bXd0aWRycmptemFvdGZsb2ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMTA1NzEsImV4cCI6MjA4OTY4NjU3MX0.NmCo_p_yRC9R_AH7Y26QmpEk-qpK-cdxWkXhAON6R1g';
+      var hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+      var token = hash.get('access_token');
+      var msg = document.getElementById('msg'), form = document.getElementById('f'), intro = document.getElementById('intro');
+      function say(text, cls) { msg.textContent = text; msg.className = cls || ''; }
+      history.replaceState(null, '', location.pathname); // keep the token out of the address bar and history
+      if (hash.get('type') !== 'recovery' || !token) {
+        intro.textContent = '';
+        say(hash.get('error_description') ? 'this link has expired or was already used. ask for a new one from the app.' : 'open this page from the reset link in your email.', 'err');
+      } else {
+        form.classList.remove('hide');
+      }
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var a = document.getElementById('p1').value, b = document.getElementById('p2').value;
+        if (a.length < 6) return say('use at least 6 characters.', 'err');
+        if (a !== b) return say('the two passwords do not match.', 'err');
+        var btn = document.getElementById('go'); btn.disabled = true; say('saving...');
+        fetch(SUPABASE_URL + '/auth/v1/user', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ password: a })
+        }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (r) {
+          if (r.ok) { form.classList.add('hide'); intro.textContent = ''; say('done. open kurukuru and log in with your new password.', 'ok'); }
+          else { btn.disabled = false; say((r.j && (r.j.msg || r.j.error_description)) || 'could not save. ask for a new link from the app.', 'err'); }
+        }).catch(function () { btn.disabled = false; say('could not reach the server. check your connection.', 'err'); });
+      });
+    </script>
+  </body>
+</html>
