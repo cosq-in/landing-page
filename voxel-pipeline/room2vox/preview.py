@@ -80,8 +80,8 @@ def render_video(npz: Path, out: Path, seconds=12, fps=30, size=(960, 540), sky=
     for i in range(n):
         t = i / n
         if mode == "orbit":
-            ctr = np.array([dims[0] / 2, (floor_y + dims[1] * 0.3), dims[2] / 2])
-            rad, el, az = 1.5 * max(dims[0], dims[2]) + 1.5, np.radians(48), 2 * np.pi * t
+            ctr = np.array([dims[0] / 2, (floor_y + dims[1] * 0.25), dims[2] / 2])
+            rad, el, az = 1.0 * max(dims[0], dims[2]) + 1.2, np.radians(60), 2 * np.pi * t
             pos = ctr + rad * np.array([np.sin(az) * np.cos(el), np.sin(el), np.cos(az) * np.cos(el)])
             fwd = (ctr - pos) / np.linalg.norm(ctr - pos)
         else:
