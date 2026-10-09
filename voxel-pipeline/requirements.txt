@@ -1,0 +1,9 @@
+numpy
+scipy
+opencv-python-headless
+trimesh
+open3d
+pycolmap>=3.10
+torch
+transformers
+pillow
