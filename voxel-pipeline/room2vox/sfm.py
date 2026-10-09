@@ -15,6 +15,8 @@ class Frame:
     kp_xy: np.ndarray    # (M,2) pixel coords of triangulated keypoints
     kp_xyz: np.ndarray   # (M,3) their world positions
     size: tuple          # (w, h)
+    depth: np.ndarray = None   # optional per-pixel depth (VGGT path)
+    rgb: np.ndarray = None     # optional image matching `depth`
 
 
 def run_sfm(images_dir: Path, work: Path) -> tuple[list[Frame], np.ndarray]:
@@ -26,8 +28,9 @@ def run_sfm(images_dir: Path, work: Path) -> tuple[list[Frame], np.ndarray]:
         db.unlink()
     sparse.mkdir(parents=True, exist_ok=True)
 
-    pycolmap.extract_features(db, images_dir, camera_mode=pycolmap.CameraMode.SINGLE,
-                              camera_model="SIMPLE_RADIAL")
+    reader = pycolmap.ImageReaderOptions()
+    reader.camera_model = "SIMPLE_RADIAL"
+    pycolmap.extract_features(db, images_dir, camera_mode=pycolmap.CameraMode.SINGLE, reader_options=reader)
     pycolmap.match_exhaustive(db)
     maps = pycolmap.incremental_mapping(db, images_dir, sparse)
     if not maps:

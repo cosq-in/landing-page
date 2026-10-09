@@ -31,12 +31,37 @@ def _ransac_plane(pts, thr, iters=800, seed=0):
     return best
 
 
+def _refine_up(pts, up, iters=4):
+    """Snap the camera-derived up vector onto the true vertical using surface normals:
+    floors and ceilings are the biggest near-horizontal surfaces in a room."""
+    import open3d as o3d
+    sub = pts[np.random.default_rng(0).choice(len(pts), min(len(pts), 60000), replace=False)]
+    pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(sub))
+    ext = np.linalg.norm(sub.max(0) - sub.min(0))
+    pc = pc.voxel_down_sample(ext / 150)
+    pc.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=ext / 40, max_nn=30))
+    nrm = np.asarray(pc.normals)
+    for _ in range(iters):
+        d = nrm @ up
+        sel = np.abs(d) > np.cos(np.radians(35))
+        if sel.sum() < 50:
+            break
+        v = nrm[sel] * np.sign(d[sel])[:, None]
+        # principal direction of the near-vertical normals
+        w, V = np.linalg.eigh(v.T @ v)
+        cand = V[:, -1] * np.sign(V[:, -1] @ up)
+        up = cand / np.linalg.norm(cand)
+    print(f"[align] refined up from normals ({int(sel.sum())} floor/ceiling normals)")
+    return up
+
+
 def estimate_alignment(frames, pts, ceiling_height=2.5, scale=None):
     """Return (R, s, floor_d): x' = s * (R x - floor_d * Y). Y is up, floor at y=0, metres."""
     # phones are held upright: camera -y axis ~ world up
     ups = np.array([-f.R.T[:, 1] for f in frames])
     up = ups.mean(0)
     up /= np.linalg.norm(up)
+    up = _refine_up(pts, up)
 
     h = pts @ up
     lo, hi = np.percentile(h, [2, 98])
@@ -61,9 +86,30 @@ def estimate_alignment(frames, pts, ceiling_height=2.5, scale=None):
     return R, s, floor_d
 
 
-def fuse(frames, pts, R, s, floor_d, estimator: DepthEstimator, voxel_length=0.03, max_depth=8.0):
+def cloud_from_depth(frames, R, s, floor_d, stride=2):
+    """VGGT path: unproject each frame's dense depth straight into a coloured world cloud (metres, Y up).
+    No TSDF here: with only ~24 sparse views, TSDF voxels rarely reach the minimum-weight cutoff."""
+    b = -s * floor_d * np.array([0.0, 1.0, 0.0])
+    xyz, col = [], []
+    for f in frames:
+        H, W = f.depth.shape
+        ys, xs = np.mgrid[0:H:stride, 0:W:stride]
+        d = f.depth[ys, xs]
+        m = d > 0
+        cam = np.stack([(xs[m] - f.K[0, 2]) / f.K[0, 0] * d[m], (ys[m] - f.K[1, 2]) / f.K[1, 1] * d[m], d[m]], 1)
+        world = (cam - f.t) @ f.R                       # R^T (cam - t)
+        xyz.append(s * (world @ R.T) + b)
+        col.append(f.rgb[ys, xs][m] / 255.0)
+    return np.concatenate(xyz), np.concatenate(col)
+
+
+def fuse(frames, pts, R, s, floor_d, estimator, voxel_length=0.03, max_depth=8.0):
     import open3d as o3d
 
+    if all(f.depth is not None for f in frames):
+        xyz, rgb = cloud_from_depth(frames, R, s, floor_d)
+        print(f"[fuse] {len(xyz)} points from {len(frames)} dense depth maps")
+        return snap_yaw(xyz), rgb
     b = -s * floor_d * np.array([0.0, 1.0, 0.0])
     vol = o3d.pipelines.integration.ScalableTSDFVolume(
         voxel_length=voxel_length, sdf_trunc=voxel_length * 4,
@@ -71,16 +117,18 @@ def fuse(frames, pts, R, s, floor_d, estimator: DepthEstimator, voxel_length=0.0
 
     used = 0
     for i, f in enumerate(frames):
-        bgr = cv2.imread(str(f.path))
-        bgr = cv2.undistort(bgr, f.K, f.dist)
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        # sparse z in camera frame (COLMAP units), measured on the *distorted* keypoints -> small mismatch, fine
-        z_kp = (f.kp_xyz @ f.R.T + f.t)[:, 2]
-        z = metric_depth(estimator.disparity(rgb), f.kp_xy, z_kp)
-        if z is None:
-            print(f"[fuse] {i + 1}/{len(frames)} skipped (too few sparse points)")
-            continue
-        z = z * s
+        if f.depth is not None:                    # VGGT path: depth already dense, no undistortion
+            rgb, z = f.rgb, f.depth.copy()
+        else:
+            bgr = cv2.undistort(cv2.imread(str(f.path)), f.K, f.dist)
+            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+            # sparse z in camera frame (COLMAP units), measured on the *distorted* keypoints -> small mismatch, fine
+            z_kp = (f.kp_xyz @ f.R.T + f.t)[:, 2]
+            z = metric_depth(estimator.disparity(rgb), f.kp_xy, z_kp)
+            if z is None:
+                print(f"[fuse] {i + 1}/{len(frames)} skipped (too few sparse points)")
+                continue
+        z = (z * s).astype(np.float32)
         z[z > max_depth] = 0
         Rc = f.R @ R.T
         tc = s * f.t - Rc @ b

@@ -33,7 +33,7 @@ class DepthEstimator:
         return out.float().cpu().numpy()
 
 
-def metric_depth(disp: np.ndarray, kp_xy: np.ndarray, kp_z: np.ndarray, min_pts=30):
+def metric_depth(disp: np.ndarray, kp_xy: np.ndarray, kp_z: np.ndarray, min_pts=12):
     """Fit disp ~= a/z + b on sparse points (robust), return depth in COLMAP units or None."""
     h, w = disp.shape
     x = np.clip(kp_xy[:, 0].astype(int), 0, w - 1)
