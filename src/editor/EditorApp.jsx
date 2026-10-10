@@ -4,7 +4,11 @@ import Editor from './Editor';
 import Login from './Login';
 import './editor.css';
 
-const VIEWS = { kiit: { label: 'KIIT' }, bangalore: { label: 'Bengaluru' } };
+// bounds = [south, west, north, east]: used to tell which book a phone's location belongs to
+const VIEWS = {
+  kiit: { label: 'KIIT', bounds: [20.335, 85.8, 20.375, 85.835] },
+  bangalore: { label: 'Bengaluru', bounds: [12.75, 77.4, 13.2, 77.85] },
+};
 const boxRing = ({ west, east, south, north }) => [[west, north], [east, north], [east, south], [west, south]];
 
 // What each view needs besides its shared draft: the map it sits on, suggestions to review, and a starting book

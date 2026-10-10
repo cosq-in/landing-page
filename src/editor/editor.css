@@ -30,3 +30,9 @@
 .qe-warn { color: #b3261e; text-transform: none; font-weight: 400; }
 .qe-tabs { display: flex; gap: 6px; }
 .qe-tabs button { flex: 1; }
+.qe-nearby { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.qe-nearby i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 0 1px #1c1b17; }
+.qe-nearby i.qe-hollow { background: transparent !important; box-shadow: 0 0 0 2px #888; }
+.qe-panel button.qe-plain { font: inherit; color: #1c1b17; text-decoration: none; font-weight: 600; }
+.qe-here .qe-row button { flex: 1; min-height: 44px; }
+@media (max-width: 800px) { .qe-panel button, .qe-login button { min-height: 44px; } .qe-panel input, .qe-panel select, .qe-panel textarea { font-size: 16px; } }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDraft } from './draft';
 import MapView from './MapView';
-import { CandidateCard, Legend, Online, PlaceForm } from './Panel';
+import { CandidateCard, Here, Legend, Online, PlaceForm } from './Panel';
+import { nearby, viewAt } from './geo';
 import { toBookJson, toCsv, validate } from './format';
 
 function download(name, text, type) {
@@ -14,6 +15,9 @@ function download(name, text, type) {
 export default function Editor({ token, view, views, onView, voxel, candidates: raw, defaultBook, onLogout, onAuthLost }) {
   const d = useDraft({ token, view, defaultBook, onAuthLost });
   const [hint, setHint] = useState('');
+  const [here, setHere] = useState(null); // {lat, lng, accuracy} once the phone has told us
+  const [locateError, setLocateError] = useState('');
+  const [locateTick, setLocateTick] = useState(0);
   const [mode, setMode] = useState('select'); // select | add | region
   const [base, setBase] = useState('both');
   const [voxelOpacity, setVoxelOpacity] = useState(0.7);
@@ -61,12 +65,22 @@ export default function Editor({ token, view, views, onView, voxel, candidates: 
     try { await d.reloadFromServer(); } catch (e) { window.alert(`Couldn't reload: ${e.message}`); }
   };
 
+  const nearbyItems = useMemo(() => {
+    const pool = [...d.places.map((item) => ({ item, kind: 'place' })), ...(showCandidates ? candidates.map((item) => ({ item, kind: 'candidate' })) : [])];
+    const kinds = new Map(pool.map((x) => [x.item, x.kind]));
+    return nearby(here, pool.map((x) => x.item), 250, 8).map((x) => ({ ...x, kind: kinds.get(x.item) }));
+  }, [here, d.places, candidates, showCandidates]);
+  const hereIn = here ? viewAt(here.lat, here.lng, views) : null;
+  const switchTo = here && hereIn && hereIn !== view ? { id: hereIn, label: views[hereIn].label } : null;
+  const addHere = () => add({ lat: here.lat, lng: here.lng });
+  const pick = (kind, id) => setSelected({ kind, id });
+
   if (!d.ready) return <p className="qe-center">{d.status === 'reconnecting' ? 'Reconnecting to Honbu…' : `Loading the shared ${views[view].label} draft…`}</p>;
 
   return (
     <div className="qe-shell">
       <MapView
-        voxel={voxel} token={token} onHint={setHint} base={base} voxelOpacity={voxelOpacity} ring={d.book.ring} drawingRing={drawing} places={d.places} candidates={candidates}
+        voxel={voxel} token={token} onHint={setHint} locateTick={locateTick} onLocate={(p) => { setHere(p); setLocateError(''); }} onLocateError={setLocateError} base={base} voxelOpacity={voxelOpacity} ring={d.book.ring} drawingRing={drawing} places={d.places} candidates={candidates}
         showCandidates={showCandidates} selected={selected?.id} peerSelections={d.peerSelections} mode={mode} onSelect={setSelected} onMove={onMove}
         onAdd={(ll) => add({ lat: ll.lat, lng: ll.lng })} onRingPoint={(ll) => setDrawing((r) => [...r, [ll.lng, ll.lat]])}
       />
@@ -76,6 +90,8 @@ export default function Editor({ token, view, views, onView, voxel, candidates: 
           {Object.entries(views).map(([id, v]) => <button key={id} role="tab" aria-selected={id === view} className={id === view ? 'on' : 'qe-ghost'} onClick={() => id !== view && onView(id)}>{v.label}</button>)}
         </div>
         {d.notices.map((n) => <p key={n.id} className="qe-notice" role="status">{n.text}</p>)}
+
+        <Here here={here} error={locateError} nearbyItems={nearbyItems} switchTo={switchTo} onFind={() => setLocateTick((t) => t + 1)} onAddHere={addHere} onPick={pick} onSwitch={() => onView(switchTo.id)} />
 
         <Online peers={d.peers} you={d.you} status={d.status} places={d.places} />
 
