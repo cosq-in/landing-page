@@ -32,7 +32,7 @@ const STYLE = {
 };
 
 /** The map: base layers, region outline, places and candidates. All state lives in the parent. */
-export default function MapView({ region, base, voxelOpacity, ring, drawingRing, places, candidates, showCandidates, selected, mode, onSelect, onAdd, onRingPoint, onMove }) {
+export default function MapView({ region, base, voxelOpacity, ring, drawingRing, places, candidates, showCandidates, selected, peerSelections, mode, onSelect, onAdd, onRingPoint, onMove }) {
   const el = useRef(null);
   const mapRef = useRef(null);
   const cb = useRef({});
@@ -50,7 +50,7 @@ export default function MapView({ region, base, voxelOpacity, ring, drawingRing,
       map.addLayer({ id: 'region-outline', type: 'line', source: 'region', paint: { 'line-color': '#ffd23f', 'line-width': 2.5, 'line-dasharray': [2, 1.5] } });
       map.addLayer({ id: 'draft-line', type: 'line', source: 'draft', paint: { 'line-color': '#ff5a36', 'line-width': 3 } });
       map.addLayer({ id: 'candidates', type: 'circle', source: 'candidates', paint: { 'circle-radius': 5, 'circle-color': 'rgba(255,255,255,0.25)', 'circle-stroke-width': 2, 'circle-stroke-color': colorExpr } });
-      map.addLayer({ id: 'places', type: 'circle', source: 'places', paint: { 'circle-radius': ['case', ['get', 'sel'], 10, 7], 'circle-color': colorExpr, 'circle-stroke-width': ['case', ['get', 'sel'], 4, 2], 'circle-stroke-color': '#fff' } });
+      map.addLayer({ id: 'places', type: 'circle', source: 'places', paint: { 'circle-radius': ['case', ['get', 'sel'], 10, ['!=', ['get', 'peer'], ''], 10, 7], 'circle-color': colorExpr, 'circle-stroke-width': ['case', ['get', 'sel'], 4, ['!=', ['get', 'peer'], ''], 4, 2], 'circle-stroke-color': ['case', ['!=', ['get', 'peer'], ''], ['get', 'peer'], '#fff'] } });
       map.addLayer({ id: 'places-label', type: 'symbol', source: 'places', minzoom: 16, layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-font': ['Open Sans Regular'] }, paint: { 'text-color': '#111', 'text-halo-color': '#fff', 'text-halo-width': 1.5 } });
       for (const layer of ['places', 'candidates']) {
         map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -114,12 +114,12 @@ export default function MapView({ region, base, voxelOpacity, ring, drawingRing,
   useEffect(() => {
     if (!ready) return;
     const map = mapRef.current;
-    map.getSource('places').setData(points(places, (p) => ({ name: p.name, sel: p.id === selected })));
+    map.getSource('places').setData(points(places, (p) => ({ name: p.name, sel: p.id === selected, peer: peerSelections[p.id]?.color || '' })));
     map.getSource('candidates').setData(points(showCandidates ? candidates : []));
     map.getSource('region').setData(ringGeoJSON(ring, false));
     map.getSource('draft').setData(ringGeoJSON(drawingRing, true));
     map.getCanvas().style.cursor = mode === 'select' ? '' : 'crosshair';
-  }, [ready, places, candidates, showCandidates, ring, drawingRing, selected, mode]);
+  }, [ready, places, candidates, showCandidates, ring, drawingRing, selected, peerSelections, mode]);
 
   return <div ref={el} className="qe-map" />;
 }

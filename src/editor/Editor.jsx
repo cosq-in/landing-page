@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDraft } from './draft';
 import MapView from './MapView';
-import { CandidateCard, Legend, PlaceForm } from './Panel';
-import { newExternalId, toBookJson, toCsv, validate } from './format';
-
-const KEY = 'qe-draft-v1';
-
-function loadDraft() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
-}
+import { CandidateCard, Legend, Online, PlaceForm } from './Panel';
+import { toBookJson, toCsv, validate } from './format';
 
 function download(name, text, type) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -16,74 +11,69 @@ function download(name, text, type) {
   URL.revokeObjectURL(url);
 }
 
-const regionRing = (r) => [[r.west, r.north], [r.east, r.north], [r.east, r.south], [r.west, r.south]];
-
-export default function Editor({ region, candidates: raw, onLogout }) {
-  const [draft] = useState(loadDraft);
-  const [book, setBook] = useState(() => draft?.book || { slug: 'kiit', name: 'KIIT Campus', college_domain: 'kiit.ac.in', ring: regionRing(region) });
-  const [places, setPlaces] = useState(draft?.places || []);
-  const [done, setDone] = useState(() => new Set(draft?.done || [])); // suggestions already accepted or rejected
+export default function Editor({ token, region, candidates: raw, onLogout, onAuthLost }) {
+  const d = useDraft({ token, region, onAuthLost });
   const [mode, setMode] = useState('select'); // select | add | region
   const [base, setBase] = useState('both');
   const [voxelOpacity, setVoxelOpacity] = useState(0.7);
   const [showCandidates, setShowCandidates] = useState(true);
   const [selected, setSelected] = useState(null);
   const [drawing, setDrawing] = useState([]);
-  const lastArea = useRef(draft?.lastArea || '');
+  const [lastArea, setLastArea] = useState('');
 
-  const candidates = useMemo(() => raw.map((c, i) => ({ ...c, id: `c${i}` })).filter((c) => !done.has(c.id)), [raw, done]);
-  const errors = useMemo(() => validate(book, places), [book, places]);
-  const areas = useMemo(() => [...new Set(places.map((p) => p.area).filter(Boolean))].sort(), [places]);
+  const candidates = useMemo(() => {
+    const done = new Set(d.done);
+    return raw.map((c, i) => ({ ...c, id: `c${i}` })).filter((c) => !done.has(c.id));
+  }, [raw, d.done]);
+  const errors = useMemo(() => validate(d.book, d.places), [d.book, d.places]);
+  const areas = useMemo(() => [...new Set(d.places.map((p) => p.area).filter(Boolean))].sort(), [d.places]);
 
-  useEffect(() => {
-    try { localStorage.setItem(KEY, JSON.stringify({ book, places, done: [...done], lastArea: lastArea.current })); } catch { /* private mode: no autosave */ }
-  }, [book, places, done]);
+  const openId = selected?.kind === 'place' ? selected.id : '';
+  const { announceSelection } = d;
+  useEffect(() => { announceSelection(openId); }, [openId, announceSelection]);
 
-  const patchPlace = (id, patch) => {
-    if (patch.area) lastArea.current = patch.area;
-    setPlaces((ps) => ps.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-  };
-  const addPlace = useCallback((fields) => {
-    setPlaces((ps) => {
-      const id = newExternalId(fields.name || 'place', new Set(ps.map((p) => p.id)));
-      setSelected({ kind: 'place', id });
-      return [...ps, { name: '', category: '', subcategory: '', hook: '', area: lastArea.current, radius_m: null, ...fields, id }];
-    });
+  const { editPlace, addPlace, finishSuggestions } = d;
+  const add = useCallback((fields) => {
+    const id = addPlace({ area: lastArea, ...fields });
+    setSelected({ kind: 'place', id });
     setMode('select');
-  }, []);
-  const onMove = useCallback((id, ll) => patchPlace(id, { lat: ll.lat, lng: ll.lng }), []);
+  }, [addPlace, lastArea]);
+  const patch = (id, p) => { if (p.area) setLastArea(p.area); editPlace(id, p); };
+  const onMove = useCallback((id, ll) => editPlace(id, { lat: ll.lat, lng: ll.lng }), [editPlace]);
 
-  const sel = selected && (selected.kind === 'place' ? places.find((p) => p.id === selected.id) : candidates.find((c) => c.id === selected.id));
-  const accept = (c) => {
-    addPlace({ name: c.name, category: c.category, subcategory: c.subcategory, lat: c.lat, lng: c.lng });
-    setDone((d) => new Set(d).add(c.id));
-  };
+  const sel = selected && (selected.kind === 'place' ? d.places.find((p) => p.id === selected.id) : candidates.find((c) => c.id === selected.id));
+  const accept = (c) => { add({ name: c.name, category: c.category, subcategory: c.subcategory, lat: c.lat, lng: c.lng }); finishSuggestions([c.id]); };
   const finishRegion = () => {
-    if (drawing.length >= 3) setBook((b) => ({ ...b, ring: drawing }));
+    if (drawing.length >= 3) d.editBook({ ring: drawing });
     setDrawing([]);
     setMode('select');
   };
   const exportFiles = () => {
-    download(`${book.slug}.book.json`, toBookJson(book), 'application/json');
-    download(`${book.slug}.places.csv`, toCsv(places), 'text/csv');
+    download(`${d.book.slug}.book.json`, toBookJson(d.book), 'application/json');
+    download(`${d.book.slug}.places.csv`, toCsv(d.places), 'text/csv');
   };
-  const setField = (k) => (e) => setBook((b) => ({ ...b, [k]: e.target.value }));
+  const setField = (k) => (e) => d.editBook({ [k]: e.target.value });
+
+  if (!d.ready) return <p className="qe-center">{d.status === 'reconnecting' ? 'Reconnecting to Honbu…' : 'Loading the shared draft…'}</p>;
 
   return (
     <div className="qe-shell">
       <MapView
-        region={region} base={base} voxelOpacity={voxelOpacity} ring={book.ring} drawingRing={drawing} places={places} candidates={candidates}
-        showCandidates={showCandidates} selected={selected?.id} mode={mode} onSelect={setSelected} onMove={onMove}
-        onAdd={(ll) => addPlace({ lat: ll.lat, lng: ll.lng })} onRingPoint={(ll) => setDrawing((d) => [...d, [ll.lng, ll.lat]])}
+        region={region} base={base} voxelOpacity={voxelOpacity} ring={d.book.ring} drawingRing={drawing} places={d.places} candidates={candidates}
+        showCandidates={showCandidates} selected={selected?.id} peerSelections={d.peerSelections} mode={mode} onSelect={setSelected} onMove={onMove}
+        onAdd={(ll) => add({ lat: ll.lat, lng: ll.lng })} onRingPoint={(ll) => setDrawing((r) => [...r, [ll.lng, ll.lat]])}
       />
       <aside className="qe-panel">
         <header><h1>Quest book editor</h1><button className="qe-ghost" onClick={onLogout}>Log out</button></header>
+        {d.notices.map((n) => <p key={n.id} className="qe-notice" role="status">{n.text}</p>)}
+
+        <Online peers={d.peers} you={d.you} status={d.status} places={d.places} />
 
         <div className="qe-card">
           <h3>Book</h3>
-          <label className="qe-field"><span>Slug</span><input value={book.slug} onChange={setField('slug')} /></label>
-          <label className="qe-field"><span>Name</span><input value={book.name} onChange={setField('name')} /></label>
-          <label className="qe-field"><span>College domain (only that college can open it)</span><input value={book.college_domain} onChange={setField('college_domain')} /></label>
+          <label className="qe-field"><span>Slug</span><input value={d.book.slug} onChange={setField('slug')} /></label>
+          <label className="qe-field"><span>Name</span><input value={d.book.name} onChange={setField('name')} /></label>
+          <label className="qe-field"><span>College domain (only that college can open it)</span><input value={d.book.college_domain} onChange={setField('college_domain')} /></label>
         </div>
 
         <div className="qe-card">
@@ -110,19 +100,19 @@ export default function Editor({ region, candidates: raw, onLogout }) {
           <Legend />
         </div>
 
-        {sel && selected.kind === 'place' && <PlaceForm place={sel} areas={areas} onChange={(patch) => patchPlace(sel.id, patch)} onDelete={() => { setPlaces((ps) => ps.filter((p) => p.id !== sel.id)); setSelected(null); }} />}
-        {sel && selected.kind === 'candidate' && <CandidateCard candidate={sel} onAccept={() => accept(sel)} onReject={() => { setDone((d) => new Set(d).add(sel.id)); setSelected(null); }} />}
+        {sel && selected.kind === 'place' && <PlaceForm place={sel} areas={areas} onChange={(p) => patch(sel.id, p)} onDelete={() => { d.deletePlace(sel.id); setSelected(null); }} />}
+        {sel && selected.kind === 'candidate' && <CandidateCard candidate={sel} onAccept={() => accept(sel)} onReject={() => { finishSuggestions([sel.id]); setSelected(null); }} />}
 
         <div className="qe-card">
-          <h3>{places.length} places</h3>
+          <h3>{d.places.length} places</h3>
           {errors.length > 0 && (
             <ul className="qe-errors">
               {errors.slice(0, 8).map((e, i) => <li key={i}>{e.id ? <button className="qe-link" onClick={() => setSelected({ kind: 'place', id: e.id })}>{e.message}</button> : e.message}</li>)}
               {errors.length > 8 && <li className="qe-muted">…and {errors.length - 8} more</li>}
             </ul>
           )}
-          <button disabled={errors.length > 0 || places.length === 0} onClick={exportFiles}>Export book.json + places.csv</button>
-          <p className="qe-muted">Seed with <code>python3 tools/seed_quests.py --book {book.slug}.book.json --csv {book.slug}.places.csv --dry-run</code> in kurukuru-honbu. Your draft autosaves in this browser.</p>
+          <button disabled={errors.length > 0 || d.places.length === 0} onClick={exportFiles}>Export book.json + places.csv</button>
+          <p className="qe-muted">Seed with <code>python3 tools/seed_quests.py --book {d.book.slug}.book.json --csv {d.book.slug}.places.csv --dry-run</code> in kurukuru-honbu. Everything here is shared live with the other editors.</p>
         </div>
       </aside>
     </div>
