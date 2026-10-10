@@ -28,3 +28,5 @@
 .qe-peers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .qe-peers i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 0 1px #1c1b17; }
 .qe-warn { color: #b3261e; text-transform: none; font-weight: 400; }
+.qe-tabs { display: flex; gap: 6px; }
+.qe-tabs button { flex: 1; }

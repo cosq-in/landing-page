@@ -39,16 +39,16 @@ const metersBetween = (a, b) => {
   return Math.hypot(dLat, dLng);
 };
 
-/** Returns [{id?, message}]; empty means the files will seed cleanly. `id` is the place's editor id. */
+/** Returns [{id?, level, message}]. Any 'error' means the seeder would skip or reject something; 'warning's are worth a look but never block export. */
 export function validate(book, places) {
   const errs = [];
-  if (!SLUG.test(book.slug || '')) errs.push({ message: 'Book slug must be lowercase letters, digits and dashes.' });
-  if (!(book.name || '').trim()) errs.push({ message: 'Book needs a name.' });
+  if (!SLUG.test(book.slug || '')) errs.push({ level: 'error', message: 'Book slug must be lowercase letters, digits and dashes.' });
+  if (!(book.name || '').trim()) errs.push({ level: 'error', message: 'Book needs a name.' });
   const ringOk = (book.ring || []).length >= 3;
-  if (!ringOk) errs.push({ message: 'Draw the book region: at least 3 points.' });
-  const seenAt = [];
+  if (!ringOk) errs.push({ level: 'error', message: 'Draw the book region: at least 3 points.' });
+  const seenAt = new Map(); // name -> places with that name, so the duplicate check stays fast on a 9,000-place book
   for (const p of places) {
-    const bad = (message) => errs.push({ id: p.id, message: `${p.name || 'Unnamed place'}: ${message}` });
+    const bad = (message, level = 'error') => errs.push({ id: p.id, level, message: `${p.name || 'Unnamed place'}: ${message}` });
     if (!(p.name || '').trim()) bad('needs a name');
     if (!(p.area || '').trim()) bad('needs an area (its chapter)');
     if (!CATEGORIES.includes(p.category)) bad('pick a category');
@@ -56,8 +56,12 @@ export function validate(book, places) {
     if (p.radius_m != null && !(Number.isInteger(p.radius_m) && p.radius_m >= 10 && p.radius_m <= 500)) bad('radius must be a whole number 10 to 500 m');
     if (ringOk && Number.isFinite(p.lat) && Number.isFinite(p.lng) && !inRing(p.lat, p.lng, book.ring)) bad('is outside the book region');
     const name = (p.name || '').trim().toLowerCase();
-    if (name && seenAt.some((q) => q.name === name && metersBetween(q, p) < 15)) bad('same name and spot as another place');
-    seenAt.push({ name, lat: p.lat, lng: p.lng });
+    if (name) {
+      const same = seenAt.get(name) || [];
+      if (same.some((q) => metersBetween(q, p) < 15)) bad('same name and spot as another place', 'warning'); // the seeder accepts these, so they never block an export
+      same.push({ lat: p.lat, lng: p.lng });
+      seenAt.set(name, same);
+    }
   }
   return errs;
 }

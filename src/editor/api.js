@@ -31,12 +31,26 @@ async function request(path, { token, body, method } = {}) {
 }
 
 export const login = (password, name) => request('/api/editor/login', { body: { password, name } });
-export const fetchRegion = (token) => request('/api/editor/region', { token });
-export const fetchCandidates = (token) => request('/api/editor/candidates', { token });
-export const fetchState = (token) => request('/api/editor/state', { token });
-export const markDone = (token, ids) => request('/api/editor/done', { token, body: { ids } });
-export const setPresence = (token, selected) => request('/api/editor/presence', { token, body: { selected } });
-export const openEvents = (token, signal) => fetch(`${BASE}/api/editor/events`, { headers: { Authorization: `Bearer ${token}` }, signal });
+const book = (view) => `book=${encodeURIComponent(view)}`;
+export const fetchRegion = (token, view) => request(`/api/editor/region?${book(view)}`, { token });
+export const fetchCandidates = (token, view) => request(`/api/editor/candidates?${book(view)}`, { token });
+export const fetchTileManifest = (token, level) => request(`/api/editor/tiles/manifest?level=${encodeURIComponent(level)}`, { token });
+
+/** One baked voxel tile, or null when that tile is empty (open ground). */
+export async function fetchTile(token, level, tile) {
+  try {
+    return await request(`/api/editor/tiles/${encodeURIComponent(level)}/${tile}`, { token });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+export const fetchState = (token, view) => request(`/api/editor/state?${book(view)}`, { token });
+export const markDone = (token, view, ids) => request(`/api/editor/done?${book(view)}`, { token, body: { ids } });
+export const setPresence = (token, view, selected) => request(`/api/editor/presence?${book(view)}`, { token, body: { selected } });
+/** Throws away this view's draft and reloads it from the server's live book. */
+export const importLive = (token, view) => request(`/api/editor/import?${book(view)}`, { token, method: 'POST', body: {} });
+export const openEvents = (token, view, signal) => fetch(`${BASE}/api/editor/events?${book(view)}`, { headers: { Authorization: `Bearer ${token}` }, signal });
 
 // Saves return {saved} or, when someone else saved first (409), {conflict: {current}} with the server's copy (null if deleted).
 async function save(path, token, method, body) {
@@ -51,15 +65,15 @@ async function save(path, token, method, body) {
 const PLACE_FIELDS = ['name', 'category', 'subcategory', 'hook', 'area', 'lat', 'lng', 'radius_m'];
 export const pickPlace = (p) => Object.fromEntries(PLACE_FIELDS.map((k) => [k, p[k]]));
 
-export const savePlace = (token, id, place, baseVersion) =>
-  save(`/api/editor/places/${encodeURIComponent(id)}`, token, 'PUT', { ...pickPlace(place), base_version: baseVersion });
-export const saveBook = (token, book, baseVersion) =>
-  save('/api/editor/book', token, 'PUT', { slug: book.slug, name: book.name, college_domain: book.college_domain, ring: book.ring, base_version: baseVersion });
+export const savePlace = (token, view, id, place, baseVersion) =>
+  save(`/api/editor/places/${encodeURIComponent(id)}?${book(view)}`, token, 'PUT', { ...pickPlace(place), base_version: baseVersion });
+export const saveBook = (token, view, b, baseVersion) =>
+  save(`/api/editor/book?${book(view)}`, token, 'PUT', { slug: b.slug, name: b.name, college_domain: b.college_domain, ring: b.ring, base_version: baseVersion });
 
 /** Deleting resolves to {deleted: version} or {conflict: {current}}. */
-export async function removePlace(token, id, version) {
+export async function removePlace(token, view, id, version) {
   try {
-    return { deleted: (await request(`/api/editor/places/${encodeURIComponent(id)}?version=${version}`, { token, method: 'DELETE' })).version };
+    return { deleted: (await request(`/api/editor/places/${encodeURIComponent(id)}?version=${version}&${book(view)}`, { token, method: 'DELETE' })).version };
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) return { conflict: { current: e.body?.current ?? null } };
     throw e;

@@ -40,6 +40,8 @@ describe('validate', () => {
     expect(byId.d).toMatch(/radius/);
     expect(byId.e).toMatch(/outside/);
     expect(byId.g).toMatch(/same name and spot|duplicate/i);
+    expect(errs.find((e) => e.id === 'g').level).toBe('warning');
+    expect(errs.filter((e) => e.level === 'error').every((e) => e.id !== 'g')).toBe(true);
   });
   it('flags a bad slug and a region under 3 points', () => {
     const errs = validate({ slug: 'KIIT Bhubaneswar', name: 'KIIT', ring: ring.slice(0, 2) }, [place()]);
@@ -80,5 +82,14 @@ describe('ids and slugs', () => {
     const a = newExternalId('Chai Point', new Set());
     expect(a).toMatch(/^chai-point-[a-z0-9]{4}$/);
     expect(newExternalId('Chai Point', new Set([a]))).not.toBe(a);
+  });
+});
+
+describe('validate on a big book', () => {
+  it('stays fast with 9,000 places', () => {
+    const many = Array.from({ length: 9000 }, (_, i) => place({ id: `p${i}`, name: `Place ${i % 3000}`, lat: 20.33 + (i % 90) * 0.0004, lng: 85.80 + Math.floor(i / 90) * 0.0003 }));
+    const t0 = performance.now();
+    validate({ slug: 'kiit', name: 'KIIT', ring }, many);
+    expect(performance.now() - t0).toBeLessThan(500);
   });
 });

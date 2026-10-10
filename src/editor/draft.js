@@ -1,21 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError, fetchState, markDone, openEvents, removePlace, saveBook, savePlace, setPresence } from './api';
+import { ApiError, fetchState, importLive, markDone, openEvents, removePlace, saveBook, savePlace, setPresence } from './api';
 import { connect } from './events';
 import { newExternalId } from './format';
 import { Saver } from './saver';
 import { applyEvent, emptyDraft, mergeState } from './sync';
 
-const ringOf = (r) => [[r.west, r.north], [r.east, r.north], [r.east, r.south], [r.west, r.south]];
-
 /**
  * The shared draft. Edits apply locally at once and are saved to Honbu in the background; other editors' changes
  * arrive over the live stream. Returns everything the editor screen needs plus the actions that change it.
  */
-export function useDraft({ token, region, onAuthLost }) {
-  const [draft, setDraftState] = useState(() => ({
-    ...emptyDraft(),
-    book: { slug: 'kiit', name: 'KIIT Campus', college_domain: 'kiit.ac.in', ring: ringOf(region), version: 0 },
-  }));
+export function useDraft({ token, view, defaultBook, onAuthLost }) {
+  const [draft, setDraftState] = useState(() => ({ ...emptyDraft(), book: { ...defaultBook, version: 0 } }));
+  const [generation, setGeneration] = useState(0); // bumped to start over (reload from server): new streams, new savers, fresh state
   const [status, setStatus] = useState('connecting');
   const [ready, setReady] = useState(false);
   const [notices, setNotices] = useState([]);
@@ -35,7 +31,7 @@ export function useDraft({ token, region, onAuthLost }) {
   useEffect(() => {
     const fail = (e) => { if (e instanceof ApiError && e.status === 401) authLost.current(); else notify(`Couldn't save: ${e.message}`); };
     const places = new Saver({
-      send: (id, place, base) => savePlace(token, id, place, base),
+      send: (id, place, base) => savePlace(token, view, id, place, base),
       onSaved: (id, saved) => update((d) => (d.places[id] ? { ...d, places: { ...d.places, [id]: { ...d.places[id], version: saved.version, updated_by: saved.updated_by } } } : d)),
       onConflict: (id, cur) => {
         if (cur) {
@@ -49,7 +45,7 @@ export function useDraft({ token, region, onAuthLost }) {
       onError: (_k, e) => fail(e),
     });
     const book = new Saver({
-      send: (_k, b, base) => saveBook(token, b, base),
+      send: (_k, b, base) => saveBook(token, view, b, base),
       onSaved: (_k, saved) => update((d) => ({ ...d, book: { ...d.book, version: saved.version, updated_by: saved.updated_by } })),
       onConflict: (_k, cur) => { if (cur) { update((d) => ({ ...d, book: cur })); notify(`${cur.updated_by} changed the book details at the same time, so you're seeing theirs.`); } },
       onError: (_k, e) => fail(e),
@@ -59,7 +55,7 @@ export function useDraft({ token, region, onAuthLost }) {
 
     const load = async () => {
       try {
-        const s = await fetchState(token);
+        const s = await fetchState(token, view);
         for (const p of s.places) places.setVersion(p.id, p.version);
         update((d) => mergeState(d, s, busy));
         setReady(true);
@@ -69,10 +65,16 @@ export function useDraft({ token, region, onAuthLost }) {
     };
 
     const stop = connect({
-      open: (signal) => openEvents(token, signal),
+      open: (signal) => openEvents(token, view, signal),
       onStatus: (st) => { if (st === 'unauthorized') authLost.current(); else setStatus(st); },
       onEvent: (e) => {
         if (e.type === 'hello') { update((d) => applyEvent(d, e)); load(); return; }
+        if (e.type === 'reset') { // someone reloaded this book from the server: drop everything and start over
+          update((d) => ({ ...emptyDraft(), you: d.you, peers: d.peers, book: { ...defaultBook, version: 0 } }));
+          setReady(false);
+          setGeneration((g) => g + 1);
+          return;
+        }
         if (e.from && e.from === ref.current.you?.id) return; // our own change; we already have it
         if (e.type === 'place') places.setVersion(e.place.id, e.place.version);
         if (e.type === 'book') book.setVersion('book', e.book.version);
@@ -80,7 +82,7 @@ export function useDraft({ token, region, onAuthLost }) {
       },
     });
     return () => { stop(); clearTimeout(presenceTimer.current); };
-  }, [token, update, notify]);
+  }, [token, view, generation, update, notify]); // eslint-disable-line react-hooks/exhaustive-deps -- defaultBook only seeds the first load
 
   const editPlace = useCallback((id, patch) => {
     update((d) => (d.places[id] ? { ...d, places: { ...d.places, [id]: { ...d.places[id], ...patch } } } : d));
@@ -106,12 +108,12 @@ export function useDraft({ token, region, onAuthLost }) {
     s.cancel(id);
     if (version === 0) return; // never reached the server
     try {
-      const r = await removePlace(token, id, version);
+      const r = await removePlace(token, view, id, version);
       if (r.conflict) {
         if (r.conflict.current) { update((d) => ({ ...d, places: { ...d.places, [id]: r.conflict.current } })); notify('Someone edited that place just now, so it was kept.'); }
       }
     } catch (e) { if (e instanceof ApiError && e.status === 401) authLost.current(); else { update((d) => ({ ...d, places: { ...d.places, [id]: p } })); notify(`Couldn't delete: ${e.message}`); } }
-  }, [token, update, notify]);
+  }, [token, view, update, notify]);
 
   const editBook = useCallback((patch) => {
     update((d) => ({ ...d, book: { ...d.book, ...patch } }));
@@ -120,13 +122,20 @@ export function useDraft({ token, region, onAuthLost }) {
 
   const finishSuggestions = useCallback((ids) => {
     update((d) => applyEvent(d, { type: 'done', done: ids }));
-    markDone(token, ids).catch((e) => notify(`Couldn't sync that choice: ${e.message}`));
-  }, [token, update, notify]);
+    markDone(token, view, ids).catch((e) => notify(`Couldn't sync that choice: ${e.message}`));
+  }, [token, view, update, notify]);
+
+  const reloadFromServer = useCallback(async () => {
+    await importLive(token, view);
+    update((d) => ({ ...emptyDraft(), you: d.you, peers: d.peers, book: { ...defaultBook, version: 0 } }));
+    setReady(false);
+    setGeneration((g) => g + 1);
+  }, [token, view, defaultBook, update]);
 
   const announceSelection = useCallback((id) => {
     clearTimeout(presenceTimer.current);
-    presenceTimer.current = setTimeout(() => setPresence(token, id || '').catch(() => {}), 150);
-  }, [token]);
+    presenceTimer.current = setTimeout(() => setPresence(token, view, id || '').catch(() => {}), 150);
+  }, [token, view]);
 
   const placeList = useMemo(() => Object.values(draft.places), [draft.places]);
   const others = useMemo(() => draft.peers.filter((p) => p.id !== draft.you?.id), [draft.peers, draft.you]);
@@ -134,6 +143,6 @@ export function useDraft({ token, region, onAuthLost }) {
 
   return {
     book: draft.book, places: placeList, done: draft.done, you: draft.you, peers: draft.peers, others, peerSelections,
-    status, ready, notices, editPlace, addPlace, deletePlace, editBook, finishSuggestions, announceSelection,
+    status, ready, notices, editPlace, addPlace, deletePlace, editBook, finishSuggestions, announceSelection, reloadFromServer,
   };
 }

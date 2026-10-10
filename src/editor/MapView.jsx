@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { COLORS } from './colors';
 import { regionCorners, regionToCanvas } from './voxel';
+import { createTileLayer } from './voxelTiles';
 
 const colorExpr = ['match', ['get', 'category'], ...Object.entries(COLORS).flat(), '#8a8a8a'];
 const EMPTY = { type: 'FeatureCollection', features: [] };
@@ -32,11 +33,12 @@ const STYLE = {
 };
 
 /** The map: base layers, region outline, places and candidates. All state lives in the parent. */
-export default function MapView({ region, base, voxelOpacity, ring, drawingRing, places, candidates, showCandidates, selected, peerSelections, mode, onSelect, onAdd, onRingPoint, onMove }) {
+export default function MapView({ voxel, token, onHint, base, voxelOpacity, ring, drawingRing, places, candidates, showCandidates, selected, peerSelections, mode, onSelect, onAdd, onRingPoint, onMove }) {
   const el = useRef(null);
   const mapRef = useRef(null);
   const cb = useRef({});
   const drag = useRef({ id: null, moved: false });
+  const tiles = useRef(null);
   const [ready, setReady] = useState(false);
   useEffect(() => { cb.current = { onSelect, onAdd, onRingPoint, onMove, mode }; });
 
@@ -87,17 +89,32 @@ export default function MapView({ region, base, voxelOpacity, ring, drawingRing,
     return () => { map.remove(); mapRef.current = null; setReady(false); };
   }, []);
 
-  // voxel image source, rebuilt when the region data changes
+  // KIIT: one baked region drawn as a single image
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !region) return;
+    if (!ready || voxel.kind !== 'region') return;
+    const region = voxel.region;
     const url = regionToCanvas(region).toDataURL();
     if (map.getLayer('voxel')) map.removeLayer('voxel');
     if (map.getSource('voxel')) map.removeSource('voxel');
     map.addSource('voxel', { type: 'image', url, coordinates: regionCorners(region) });
     map.addLayer({ id: 'voxel', type: 'raster', source: 'voxel', paint: { 'raster-resampling': 'nearest' } }, 'region-fill');
     map.fitBounds([[region.west, region.south], [region.east, region.north]], { padding: 40, duration: 0 });
-  }, [ready, region]);
+  }, [ready, voxel]);
+
+  // Bengaluru: tiles in view, loaded as you pan and zoom
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || voxel.kind !== 'tiles') return undefined;
+    const m = voxel.manifests.coarse;
+    map.fitBounds([[m.west, m.south], [m.east, m.north]], { padding: 40, duration: 0 });
+    const layer = createTileLayer(map, { token, manifests: voxel.manifests, beforeId: 'region-fill', onHint });
+    tiles.current = layer;
+    const go = () => layer.refresh();
+    map.on('moveend', go);
+    go();
+    return () => { map.off('moveend', go); layer.destroy(); tiles.current = null; };
+  }, [ready, voxel, token, onHint]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -109,7 +126,8 @@ export default function MapView({ region, base, voxelOpacity, ring, drawingRing,
       map.setLayoutProperty('voxel', 'visibility', vox ? 'visible' : 'none');
       map.setPaintProperty('voxel', 'raster-opacity', base === 'both' ? voxelOpacity : 1);
     }
-  }, [ready, base, voxelOpacity, region]);
+    tiles.current?.setStyle({ visible: vox, opacity: base === 'both' ? voxelOpacity : 1 });
+  }, [ready, base, voxelOpacity, voxel]);
 
   useEffect(() => {
     if (!ready) return;
