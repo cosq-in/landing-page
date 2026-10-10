@@ -23,7 +23,12 @@
 .qe-login { max-width: 320px; margin: 20vh auto; display: flex; flex-direction: column; gap: 10px; font: 14px system-ui, sans-serif; }
 .qe-error { color: #b3261e; margin: 0; }
 .qe-center { text-align: center; margin-top: 20vh; font: 14px system-ui, sans-serif; }
-@media (max-width: 800px) { .qe-shell { grid-template-columns: 1fr; grid-template-rows: 55vh 1fr; height: auto; min-height: 100vh; } .qe-panel { border-left: 0; border-top: 2px solid #1c1b17; } }
+@media (max-width: 800px) {
+  /* on a phone the map stays pinned to the top while the panel scrolls under it, so a pin you are editing stays in view */
+  .qe-shell { display: block; height: auto; min-height: 100vh; }
+  .qe-map { position: sticky; top: 0; z-index: 2; height: 46vh; }
+  .qe-panel { border-left: 0; border-top: 2px solid #1c1b17; overflow: visible; }
+}
 .qe-notice { margin: 0; padding: 8px 10px; background: #fff3c4; border: 2px solid #1c1b17; font-size: 13px; }
 .qe-peers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .qe-peers i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 0 1px #1c1b17; }
@@ -36,3 +41,5 @@
 .qe-panel button.qe-plain { font: inherit; color: #1c1b17; text-decoration: none; font-weight: 600; }
 .qe-here .qe-row button { flex: 1; min-height: 44px; }
 @media (max-width: 800px) { .qe-panel button, .qe-login button { min-height: 44px; } .qe-panel input, .qe-panel select, .qe-panel textarea { font-size: 16px; } }
+/* The "you are here" dot often sits exactly on a pin you just added there; it must not swallow taps and drags meant for the pin. */
+.maplibregl-user-location-dot, .maplibregl-user-location-dot::before, .maplibregl-user-location-dot::after, .maplibregl-user-location-accuracy-circle { pointer-events: none; }

@@ -11,7 +11,7 @@ export function PlaceForm({ place, areas, onChange, onDelete }) {
   return (
     <div className="qe-card">
       <h3>Place</h3>
-      <Field label="Name"><input value={place.name} onChange={set('name')} autoFocus /></Field>
+      <Field label="Name"><input value={place.name} onChange={set('name')} autoFocus={typeof window !== 'undefined' && window.matchMedia('(min-width: 801px)').matches} /></Field>
       <Field label="Category">
         <select value={place.category} onChange={set('category')}>
           <option value="">Pick one…</option>
@@ -27,7 +27,7 @@ export function PlaceForm({ place, areas, onChange, onDelete }) {
       <Field label="Radius in metres (blank = automatic)">
         <input type="number" min="10" max="500" value={place.radius_m ?? ''} onChange={(e) => onChange({ radius_m: e.target.value === '' ? null : Number(e.target.value) })} />
       </Field>
-      <p className="qe-muted">{place.lat.toFixed(6)}, {place.lng.toFixed(6)} · drag the pin to move it{place.updated_by ? ` · last saved by ${place.updated_by}` : ''}</p>
+      <p className="qe-muted">{place.lat.toFixed(6)}, {place.lng.toFixed(6)} · to move it: drag the pin (on a phone, press and hold the selected pin, then drag){place.updated_by ? ` · last saved by ${place.updated_by}` : ''}</p>
       <button className="qe-danger" onClick={onDelete}>Delete place</button>
     </div>
   );

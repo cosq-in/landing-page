@@ -32,6 +32,8 @@ const STYLE = {
   layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#dfe6c3' } }, { id: 'sat', type: 'raster', source: 'sat' }],
 };
 
+const HOLD_MS = 350;
+
 /** The map: base layers, region outline, places and candidates. All state lives in the parent. */
 export default function MapView({ voxel, token, onHint, base, voxelOpacity, ring, drawingRing, places, candidates, showCandidates, selected, peerSelections, mode, locateTick, onLocate, onLocateError, onSelect, onAdd, onRingPoint, onMove }) {
   const el = useRef(null);
@@ -42,7 +44,7 @@ export default function MapView({ voxel, token, onHint, base, voxelOpacity, ring
   const geo = useRef(null);
   const lastFix = useRef(null);
   const [ready, setReady] = useState(false);
-  useEffect(() => { cb.current = { onSelect, onAdd, onRingPoint, onMove, onLocate, onLocateError, mode }; });
+  useEffect(() => { cb.current = { onSelect, onAdd, onRingPoint, onMove, onLocate, onLocateError, mode, selected }; });
 
   useEffect(() => {
     const map = new maplibregl.Map({ container: el.current, style: STYLE, center: [85.8166, 20.3541], zoom: 14, maxZoom: 21, attributionControl: { compact: true } });
@@ -74,6 +76,7 @@ export default function MapView({ voxel, token, onHint, base, voxelOpacity, ring
         map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
       }
+      // Mouse: press a pin and drag it.
       const start = (e) => {
         if (cb.current.mode !== 'select') return;
         e.preventDefault();
@@ -85,19 +88,49 @@ export default function MapView({ voxel, token, onHint, base, voxelOpacity, ring
         drag.current.moved = true;
         cb.current.onMove(drag.current.id, e.lngLat);
       };
-      map.on('mousedown', 'places-hit', start);
-      map.on('touchstart', 'places-hit', start); // phones: press a pin and drag it
-      map.on('mousemove', move);
-      map.on('touchmove', move);
       const end = () => {
+        clearTimeout(touch.timer);
+        touch.pending = null;
+        map.touchZoomRotate.enable();
         if (!drag.current.id) return;
         map.dragPan.enable();
         const moved = drag.current.moved;
         drag.current = { id: null, moved: false };
         if (moved) { drag.current.justDragged = true; setTimeout(() => { drag.current.justDragged = false; }, 50); }
       };
+      // Touch: a finger that lands on a pin is usually panning or pinching, so a pin is only picked up when it is
+      // already selected AND held still for HOLD_MS with one finger. Moving first (a pan) or a second finger (a pinch) cancels.
+      const touch = { timer: null, pending: null, x: 0, y: 0 };
+      const touchStart = (e) => {
+        if (cb.current.mode !== 'select') return;
+        const id = e.features[0].properties.id;
+        if (id !== cb.current.selected || e.originalEvent.touches.length !== 1) return;
+        Object.assign(touch, { pending: id, x: e.point.x, y: e.point.y });
+        clearTimeout(touch.timer);
+        touch.timer = setTimeout(() => {
+          if (!touch.pending) return;
+          drag.current = { id: touch.pending, moved: false };
+          touch.pending = null;
+          map.dragPan.disable();
+          map.touchZoomRotate.disable();
+          navigator.vibrate?.(30); // tells the finger the pin is now held
+        }, HOLD_MS);
+      };
+      const touchMove = (e) => {
+        if (touch.pending) {
+          if (e.originalEvent.touches.length > 1 || Math.hypot(e.point.x - touch.x, e.point.y - touch.y) > 8) { clearTimeout(touch.timer); touch.pending = null; }
+          return;
+        }
+        if (drag.current.id && e.originalEvent.touches.length > 1) { end(); return; } // a second finger ends the drag
+        move(e);
+      };
+      map.on('mousedown', 'places-hit', start);
+      map.on('touchstart', 'places-hit', touchStart);
+      map.on('mousemove', move);
+      map.on('touchmove', touchMove);
       map.on('mouseup', end);
       map.on('touchend', end);
+      map.on('touchcancel', end);
       map.on('click', (e) => {
         if (drag.current.justDragged) return;
         const { mode: m } = cb.current;
