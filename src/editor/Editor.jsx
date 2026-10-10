@@ -1,0 +1,130 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import MapView from './MapView';
+import { CandidateCard, Legend, PlaceForm } from './Panel';
+import { newExternalId, toBookJson, toCsv, validate } from './format';
+
+const KEY = 'qe-draft-v1';
+
+function loadDraft() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
+}
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const regionRing = (r) => [[r.west, r.north], [r.east, r.north], [r.east, r.south], [r.west, r.south]];
+
+export default function Editor({ region, candidates: raw, onLogout }) {
+  const [draft] = useState(loadDraft);
+  const [book, setBook] = useState(() => draft?.book || { slug: 'kiit', name: 'KIIT Campus', college_domain: 'kiit.ac.in', ring: regionRing(region) });
+  const [places, setPlaces] = useState(draft?.places || []);
+  const [done, setDone] = useState(() => new Set(draft?.done || [])); // suggestions already accepted or rejected
+  const [mode, setMode] = useState('select'); // select | add | region
+  const [base, setBase] = useState('both');
+  const [voxelOpacity, setVoxelOpacity] = useState(0.7);
+  const [showCandidates, setShowCandidates] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [drawing, setDrawing] = useState([]);
+  const lastArea = useRef(draft?.lastArea || '');
+
+  const candidates = useMemo(() => raw.map((c, i) => ({ ...c, id: `c${i}` })).filter((c) => !done.has(c.id)), [raw, done]);
+  const errors = useMemo(() => validate(book, places), [book, places]);
+  const areas = useMemo(() => [...new Set(places.map((p) => p.area).filter(Boolean))].sort(), [places]);
+
+  useEffect(() => {
+    try { localStorage.setItem(KEY, JSON.stringify({ book, places, done: [...done], lastArea: lastArea.current })); } catch { /* private mode: no autosave */ }
+  }, [book, places, done]);
+
+  const patchPlace = (id, patch) => {
+    if (patch.area) lastArea.current = patch.area;
+    setPlaces((ps) => ps.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  };
+  const addPlace = useCallback((fields) => {
+    setPlaces((ps) => {
+      const id = newExternalId(fields.name || 'place', new Set(ps.map((p) => p.id)));
+      setSelected({ kind: 'place', id });
+      return [...ps, { name: '', category: '', subcategory: '', hook: '', area: lastArea.current, radius_m: null, ...fields, id }];
+    });
+    setMode('select');
+  }, []);
+  const onMove = useCallback((id, ll) => patchPlace(id, { lat: ll.lat, lng: ll.lng }), []);
+
+  const sel = selected && (selected.kind === 'place' ? places.find((p) => p.id === selected.id) : candidates.find((c) => c.id === selected.id));
+  const accept = (c) => {
+    addPlace({ name: c.name, category: c.category, subcategory: c.subcategory, lat: c.lat, lng: c.lng });
+    setDone((d) => new Set(d).add(c.id));
+  };
+  const finishRegion = () => {
+    if (drawing.length >= 3) setBook((b) => ({ ...b, ring: drawing }));
+    setDrawing([]);
+    setMode('select');
+  };
+  const exportFiles = () => {
+    download(`${book.slug}.book.json`, toBookJson(book), 'application/json');
+    download(`${book.slug}.places.csv`, toCsv(places), 'text/csv');
+  };
+  const setField = (k) => (e) => setBook((b) => ({ ...b, [k]: e.target.value }));
+
+  return (
+    <div className="qe-shell">
+      <MapView
+        region={region} base={base} voxelOpacity={voxelOpacity} ring={book.ring} drawingRing={drawing} places={places} candidates={candidates}
+        showCandidates={showCandidates} selected={selected?.id} mode={mode} onSelect={setSelected} onMove={onMove}
+        onAdd={(ll) => addPlace({ lat: ll.lat, lng: ll.lng })} onRingPoint={(ll) => setDrawing((d) => [...d, [ll.lng, ll.lat]])}
+      />
+      <aside className="qe-panel">
+        <header><h1>Quest book editor</h1><button className="qe-ghost" onClick={onLogout}>Log out</button></header>
+
+        <div className="qe-card">
+          <h3>Book</h3>
+          <label className="qe-field"><span>Slug</span><input value={book.slug} onChange={setField('slug')} /></label>
+          <label className="qe-field"><span>Name</span><input value={book.name} onChange={setField('name')} /></label>
+          <label className="qe-field"><span>College domain (only that college can open it)</span><input value={book.college_domain} onChange={setField('college_domain')} /></label>
+        </div>
+
+        <div className="qe-card">
+          <h3>Map</h3>
+          <div className="qe-row">
+            {[['voxel', 'Voxel'], ['satellite', 'Satellite'], ['both', 'Both']].map(([k, l]) => (
+              <button key={k} className={base === k ? 'on' : 'qe-ghost'} onClick={() => setBase(k)}>{l}</button>
+            ))}
+          </div>
+          {base === 'both' && <label className="qe-field"><span>Voxel opacity</span><input type="range" min="0.1" max="1" step="0.05" value={voxelOpacity} onChange={(e) => setVoxelOpacity(+e.target.value)} /></label>}
+          <label className="qe-check"><input type="checkbox" checked={showCandidates} onChange={(e) => setShowCandidates(e.target.checked)} /> Show {candidates.length} suggestions</label>
+          <div className="qe-row">
+            <button className={mode === 'select' ? 'on' : 'qe-ghost'} onClick={() => { setMode('select'); setDrawing([]); }}>Select</button>
+            <button className={mode === 'add' ? 'on' : 'qe-ghost'} onClick={() => setMode('add')}>Add place</button>
+            <button className={mode === 'region' ? 'on' : 'qe-ghost'} onClick={() => { setMode('region'); setDrawing([]); }}>Draw region</button>
+          </div>
+          {mode === 'region' && (
+            <div className="qe-row">
+              <span className="qe-muted">{drawing.length} points</span>
+              <button disabled={drawing.length < 3} onClick={finishRegion}>Finish</button>
+              <button className="qe-ghost" onClick={() => { setDrawing([]); setMode('select'); }}>Cancel</button>
+            </div>
+          )}
+          <Legend />
+        </div>
+
+        {sel && selected.kind === 'place' && <PlaceForm place={sel} areas={areas} onChange={(patch) => patchPlace(sel.id, patch)} onDelete={() => { setPlaces((ps) => ps.filter((p) => p.id !== sel.id)); setSelected(null); }} />}
+        {sel && selected.kind === 'candidate' && <CandidateCard candidate={sel} onAccept={() => accept(sel)} onReject={() => { setDone((d) => new Set(d).add(sel.id)); setSelected(null); }} />}
+
+        <div className="qe-card">
+          <h3>{places.length} places</h3>
+          {errors.length > 0 && (
+            <ul className="qe-errors">
+              {errors.slice(0, 8).map((e, i) => <li key={i}>{e.id ? <button className="qe-link" onClick={() => setSelected({ kind: 'place', id: e.id })}>{e.message}</button> : e.message}</li>)}
+              {errors.length > 8 && <li className="qe-muted">…and {errors.length - 8} more</li>}
+            </ul>
+          )}
+          <button disabled={errors.length > 0 || places.length === 0} onClick={exportFiles}>Export book.json + places.csv</button>
+          <p className="qe-muted">Seed with <code>python3 tools/seed_quests.py --book {book.slug}.book.json --csv {book.slug}.places.csv --dry-run</code> in kurukuru-honbu. Your draft autosaves in this browser.</p>
+        </div>
+      </aside>
+    </div>
+  );
+}
