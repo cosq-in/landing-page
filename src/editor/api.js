@@ -1,4 +1,6 @@
-const BASE = (import.meta.env.VITE_HONBU_URL || 'http://localhost:8080').replace(/\/$/, '');
+// Local dev talks to a local Honbu; a production build talks to the live one unless VITE_HONBU_URL says otherwise.
+const DEFAULT_HONBU = import.meta.env.DEV ? 'http://localhost:8080' : 'https://kurukuru-honbu.onrender.com';
+const BASE = (import.meta.env.VITE_HONBU_URL || DEFAULT_HONBU).replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(status, message, retryAfter = 0, body = null) {
