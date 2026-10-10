@@ -24,3 +24,7 @@
 .qe-error { color: #b3261e; margin: 0; }
 .qe-center { text-align: center; margin-top: 20vh; font: 14px system-ui, sans-serif; }
 @media (max-width: 800px) { .qe-shell { grid-template-columns: 1fr; grid-template-rows: 55vh 1fr; height: auto; min-height: 100vh; } .qe-panel { border-left: 0; border-top: 2px solid #1c1b17; } }
+.qe-notice { margin: 0; padding: 8px 10px; background: #fff3c4; border: 2px solid #1c1b17; font-size: 13px; }
+.qe-peers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.qe-peers i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 0 1px #1c1b17; }
+.qe-warn { color: #b3261e; text-transform: none; font-weight: 400; }

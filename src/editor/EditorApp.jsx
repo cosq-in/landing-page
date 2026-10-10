@@ -31,5 +31,5 @@ export default function EditorApp() {
   const logout = () => { setToken(null); setData(null); setError(''); };
   if (!token) return <><Login onToken={setToken} />{error && <p className="qe-error qe-center">{error}</p>}</>;
   if (!data) return <p className="qe-center">{error || 'Loading the KIIT map…'}</p>;
-  return <Editor region={data.region} candidates={data.candidates} onLogout={logout} />;
+  return <Editor token={token} region={data.region} candidates={data.candidates} onLogout={logout} onAuthLost={() => { logout(); setError('Session expired, log in again.'); }} />;
 }
