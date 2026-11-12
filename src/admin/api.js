@@ -1,4 +1,4 @@
-import { request } from '../editor/api';
+import { BASE, ApiError, request } from '../editor/api';
 
 export { ApiError } from '../editor/api';
 
@@ -9,3 +9,23 @@ export const resetFlag = (token, key) => request(`/api/admin/flags/${encodeURICo
 export const searchUsers = (token, q) => request(`/api/admin/users?q=${encodeURIComponent(q)}`, { token });
 export const getUser = (token, id) => request(`/api/admin/users/${encodeURIComponent(id)}`, { token });
 export const auditLog = (token, limit = 100) => request(`/api/admin/audit?limit=${limit}`, { token });
+
+export const listRwReports = (token, status) => request(`/api/admin/roadwatch/reports${status ? `?status=${encodeURIComponent(status)}` : ''}`, { token });
+export const rwForward = (token, id, body) => request(`/api/admin/roadwatch/reports/${encodeURIComponent(id)}/forward`, { token, body });
+export const rwSetStatus = (token, id, body) => request(`/api/admin/roadwatch/reports/${encodeURIComponent(id)}/status`, { token, body });
+export const listRwPhotos = (token) => request('/api/admin/roadwatch/photos?status=pending', { token });
+export const approveRwPhoto = (token, pid) => request(`/api/admin/roadwatch/photos/${encodeURIComponent(pid)}/approve`, { token, body: {} });
+export const rejectRwPhoto = (token, pid, body) => request(`/api/admin/roadwatch/photos/${encodeURIComponent(pid)}/reject`, { token, body });
+
+/** The photo is JPEG bytes behind the bearer token, so it comes back as a Blob for URL.createObjectURL. */
+export async function fetchRwPhotoBlob(token, pid, signal) {
+  let res;
+  try {
+    res = await fetch(`${BASE}/api/admin/roadwatch/photos/${encodeURIComponent(pid)}`, { headers: { Authorization: `Bearer ${token}` }, signal });
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e;
+    throw new ApiError(0, `Can't reach Honbu at ${BASE}`);
+  }
+  if (!res.ok) throw new ApiError(res.status, (await res.text()).trim() || `Error ${res.status}`);
+  return res.blob();
+}

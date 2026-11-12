@@ -54,3 +54,33 @@ main { max-width: 980px; margin: 0 auto; padding: 16px; }
 
 /* the public site lowercases everything; ids, env var names and emails here must show exactly as they are */
 .ad-shell, .ad-shell * { text-transform: none !important; }
+
+/* Road Watch */
+.ad-shell select { font: inherit; padding: 7px 9px; border: 2px solid #1c1b17; background: #fff; max-width: 100%; box-sizing: border-box; min-height: 36px; }
+.ad-tabcount { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: #b3261e; color: #fff; font-size: 12px; line-height: 18px; text-align: center; }
+.ad-shell button.on .ad-tabcount { background: #ffd23f; color: #1c1b17; }
+.rw, .rw-block { display: grid; gap: 12px; }
+.rw { gap: 16px; }
+.rw-h { font-size: 15px; margin: 8px 0 0; padding-bottom: 4px; border-bottom: 2px solid #1c1b17; }
+.rw-table td.rw-where { max-width: 260px; overflow-wrap: anywhere; }
+.rw-open, .rw-reopened { background: #ffe0dc; }
+.rw-reported, .rw-acknowledged { background: #fff3c4; }
+.rw-fixed { background: #dcecf8; }
+.rw-verified { background: #e3f4eb; }
+.rw-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rw-timeline { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.rw-forward { display: grid; gap: 8px; padding: 10px; border: 2px dashed #1c1b17; background: #fff; }
+.rw-forward input[type='text'], .rw-forward input:not([type]) { width: 100%; }
+.rw-forward .ad-primary { justify-self: start; }
+.rw-check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.rw-photos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.rw-photo { background: #fffaf0; border: 2px solid #1c1b17; padding: 10px; display: grid; gap: 8px; align-content: start; }
+.rw-thumb { aspect-ratio: 4 / 3; background: #e8e2d0; border: 2px solid #1c1b17; display: grid; place-items: center; overflow: hidden; text-align: center; padding: 4px; box-sizing: border-box; }
+.rw-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rw-photo-meta { display: grid; gap: 2px; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ad-top nav { flex-wrap: wrap; } .rw-photos { grid-template-columns: 1fr 1fr; } .rw-table.ad-table { display: table; overflow: visible; font-size: 13px; }
+  .rw-table th, .rw-table td { padding: 6px 5px; }
+  .rw-table th:nth-child(2), .rw-table td:nth-child(2) { display: none; }
+  .rw-table td.rw-where { max-width: none; }
+  .rw-photo .ad-row { flex-wrap: nowrap; }
+  .rw-photo .ad-row button { flex: 1; padding: 6px 4px; } }
