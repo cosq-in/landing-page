@@ -29,3 +29,7 @@ export async function fetchRwPhotoBlob(token, pid, signal) {
   if (!res.ok) throw new ApiError(res.status, (await res.text()).trim() || `Error ${res.status}`);
   return res.blob();
 }
+
+export const getQuestDraft = (token, view) => request(`/api/admin/quests/${encodeURIComponent(view)}`, { token });
+// request() sends a POST only when there is a body, so publish carries an empty one.
+export const publishQuests = (token, view) => request(`/api/admin/quests/${encodeURIComponent(view)}/publish`, { token, body: {} });

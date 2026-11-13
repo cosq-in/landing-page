@@ -5,11 +5,12 @@ import Activity from './Activity';
 import { listRwPhotos, login } from './api';
 import './admin.css';
 import Flags from './Flags';
+import Quests from './Quests';
 import RoadWatch from './RoadWatch';
 import { photoBadge } from './rwLogic';
 import Users from './Users';
 
-const TABS = [['flags', 'Feature flags'], ['users', 'Users'], ['roadwatch', 'Road Watch'], ['activity', 'Activity']];
+const TABS = [['flags', 'Feature flags'], ['users', 'Users'], ['roadwatch', 'Road Watch'], ['quests', 'Quests'], ['activity', 'Activity']];
 
 export default function AdminApp() {
   const [token, setToken] = useState(null); // memory only: a reload means logging in again
@@ -52,6 +53,7 @@ export default function AdminApp() {
         {tab === 'flags' && <Flags token={token} onAuth={lost} />}
         {tab === 'users' && <Users token={token} onAuth={lost} />}
         {tab === 'roadwatch' && <RoadWatch token={token} onAuth={lost} onPhotoCount={setPhotoCount} />}
+        {tab === 'quests' && <Quests token={token} onAuth={lost} />}
         {tab === 'activity' && <Activity token={token} onAuth={lost} />}
       </main>
     </div>
