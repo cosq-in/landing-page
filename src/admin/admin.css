@@ -84,3 +84,10 @@ main { max-width: 980px; margin: 0 auto; padding: 16px; }
   .rw-table td.rw-where { max-width: none; }
   .rw-photo .ad-row { flex-wrap: nowrap; }
   .rw-photo .ad-row button { flex: 1; padding: 6px 4px; } }
+.qs { display: grid; gap: 12px; }
+.qs-cards { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
+.qs-issues { display: grid; gap: 4px; }
+.qs-list { margin: 0; padding: 8px 10px 8px 26px; border: 2px solid #1c1b17; display: grid; gap: 4px; max-height: 220px; overflow-y: auto; overflow-wrap: anywhere; }
+.qs-list.error { background: #ffe0dc; }
+.qs-list.warning { background: #fff3c4; }
+.qs-link { color: inherit; font-weight: 700; }
